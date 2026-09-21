@@ -164,7 +164,6 @@ struct WorkBuddyTests {
     func testDesktopSessionReading() {
         if let session = WorkBuddyDesktopSession.readSession() {
             #expect(!session.token.isEmpty)
-            print("===> [TEST] 成功从本地桌面端读取会话: uid=\(session.uid ?? ""), nickname=\(session.nickname ?? "")")
         }
     }
 
