@@ -617,3 +617,15 @@
 "Uses a browser session you import in Settings. Importing may ask for browser Keychain access." = "使用你在設定中匯入的瀏覽器登入工作階段。匯入時可能要求瀏覽器的鑰匙圈存取權限。";
 "Uses the GitHub login you connect in Settings. No Keychain prompt." = "使用你在設定中連結的 GitHub 登入。不會出現鑰匙圈提示。";
 "Uses only the API key you enter in Settings. No Keychain prompt." = "只使用你在設定中輸入的 API 金鑰。不會出現鑰匙圈提示。";
+
+/* Doubao Work */
+"Doubao Work" = "豆包工作";
+"Doubao Work Usage" = "豆包工作";
+"Usage Overview" = "用量概覽";
+"No Doubao session found. Sign in at doubao.com first." = "沒找到豆包工作 (Doubao) 的登入資訊。請先在 doubao.com 登入。";
+"Sign in to Doubao in a browser or paste your session cookie in Settings." = "在瀏覽器中登入豆包或在設定中填入 Cookie 後才能查看用量。";
+"Doubao's saved session expired. Sign in again in your browser." = "豆包的登入資訊已過期，請在瀏覽器中重新登入。";
+"No active plan on this Doubao account." = "此豆包帳號上沒有生效的方案。";
+"Read from DoubaoWork Desktop%@." = "已從豆包工作桌面端讀取%@。";
+"標準套餐" = "標準方案";
+"個人訂閱" = "個人訂閱";

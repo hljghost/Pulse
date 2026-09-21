@@ -147,7 +147,7 @@ struct UsageDetailCard: View {
                 ValueRow(
                     title: usage.windows.isEmpty
                         ? String.localized("Credit balance")
-                        : String.localized("Total Remaining"),
+                        : (usage.provider == .doubao ? String.localized("Usage Overview") : String.localized("Total Remaining")),
                     value: balance
                 )
             }
@@ -269,8 +269,9 @@ struct UsageDetailCard: View {
                 .lineLimit(1)
                 .font(.system(size: DetailCardLayout.titleFontSize, weight: .semibold, design: .rounded))
                 .foregroundStyle(.primary)
+                .layoutPriority(1)
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 4)
 
             if let plan = usage.plan, !plan.isEmpty {
                 Text(plan)
@@ -279,6 +280,7 @@ struct UsageDetailCard: View {
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(Color.primary.opacity(0.08), in: Capsule())
+                    .lineLimit(1)
             }
         }
     }
@@ -305,6 +307,12 @@ private struct ValueRow: View {
             let detail = String(value[value.index(after: openIdx)..<closeIdx]).trimmingCharacters(in: .whitespaces)
             return (main, detail.isEmpty ? nil : detail)
         }
+        if value.contains(" · ") && value.count > 12 {
+            let parts = value.components(separatedBy: " · ")
+            if parts.count >= 2 {
+                return (parts[0], parts.dropFirst().joined(separator: " · "))
+            }
+        }
         return (value, nil)
     }
 
@@ -323,14 +331,15 @@ private struct ValueRow: View {
                 Text(main)
                     .font(.system(size: DetailCardLayout.rowFontSize, weight: .medium, design: .rounded))
                     .foregroundStyle(.primary.opacity(0.9))
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.trailing)
             }
 
             if let detail {
                 Text(detail)
                     .font(.system(size: 10 * PanelMetrics.scale, weight: .regular, design: .rounded))
                     .foregroundStyle(.primary.opacity(0.45))
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
         }
         .accessibilityElement(children: .ignore)

@@ -365,7 +365,12 @@ struct DoubaoUsageService: Sendable {
             summaryParts.append("本周期已用 \(label)")
         }
 
-        let creditText = summaryParts.isEmpty ? nil : summaryParts.joined(separator: " · ")
+        let creditText: String?
+        if summaryParts.count >= 2 {
+            creditText = "\(summaryParts[0]) (\(summaryParts[1]))"
+        } else {
+            creditText = summaryParts.first
+        }
 
         return .init(
             account: AccountKey(.doubao),

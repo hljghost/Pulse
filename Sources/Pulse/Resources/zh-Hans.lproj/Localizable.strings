@@ -593,6 +593,8 @@
 
 /* Doubao Work */
 "Doubao Work" = "豆包工作";
+"Doubao Work Usage" = "豆包工作";
+"Usage Overview" = "用量概览";
 "No Doubao session found. Sign in at doubao.com first." = "没找到豆包工作 (Doubao) 的登录信息。请先在 doubao.com 登录。";
 "Sign in to Doubao in a browser or paste your session cookie in Settings." = "在浏览器里登录豆包或在设置中填入 Cookie 后才能看到用量。";
 "Doubao's saved session expired. Sign in again in your browser." = "豆包的登录信息已过期，请在浏览器里重新登录。";

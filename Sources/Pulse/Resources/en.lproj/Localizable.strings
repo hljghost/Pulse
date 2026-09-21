@@ -593,6 +593,8 @@
 
 /* Doubao Work */
 "Doubao Work" = "Doubao Work";
+"Doubao Work Usage" = "Doubao Work";
+"Usage Overview" = "Usage Overview";
 "No Doubao session found. Sign in at doubao.com first." = "No Doubao session found. Sign in at doubao.com first.";
 "Sign in to Doubao in a browser or paste your session cookie in Settings." = "Sign in to Doubao in a browser or paste your session cookie in Settings.";
 "Doubao's saved session expired. Sign in again in your browser." = "Doubao's saved session expired. Sign in again in your browser.";
