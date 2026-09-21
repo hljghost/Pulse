@@ -1195,6 +1195,9 @@ struct SettingsView: View {
             case .workbuddy:
                 host = WorkBuddyClient.host
                 keep = { try? WorkBuddyCookie.normalize($0) }
+            case .doubao:
+                host = DoubaoClient.host
+                keep = { try? DoubaoCookie.normalize($0) }
             case .claudeCode, .codex, .antigravity, .cursor, .openCodeGo,
                  .kimiCode, .zai, .glmCoding, .minimax, .minimaxCN, .copilot,
                  .grok, .grokBot, .volcengine, .commandCode, .deepSeek, .devin:
@@ -1214,6 +1217,22 @@ struct SettingsView: View {
                         savedKey = token
                         let name = desktop.nickname.map { " (\($0))" } ?? ""
                         sessionMessage = String.localized("Read from WorkBuddy Desktop\(name).")
+                    }
+                    return
+                }
+            }
+
+            if account.provider == .doubao {
+                if let desktop = DoubaoDesktopSession.readSession() {
+                    let cookie = desktop.cookie
+                    guard APIKeyStore.setKey(cookie, for: account.provider) else { return }
+                    store.loadAPIKeys()
+                    store.refresh(account)
+                    if pane == .account(account) {
+                        apiKey = cookie
+                        savedKey = cookie
+                        let name = desktop.nickname.map { " (\($0))" } ?? ""
+                        sessionMessage = String.localized("Read from DoubaoWork Desktop\(name).")
                     }
                     return
                 }
@@ -1251,6 +1270,8 @@ struct SettingsView: View {
                     String.localized("No Xiaomi session found. Sign in at platform.xiaomimimo.com first.")
                 case .workbuddy:
                     String.localized("No WorkBuddy session found. Sign in at workbuddy.cn or codebuddy.cn first.")
+                case .doubao:
+                    String.localized("No Doubao session found. Sign in at doubao.com first.")
                 default:
                     String.localized("No Ollama session found. Sign in at ollama.com first.")
                 }

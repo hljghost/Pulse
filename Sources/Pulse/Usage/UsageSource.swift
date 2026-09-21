@@ -121,7 +121,7 @@ enum UsageSource: String, CaseIterable, Identifiable, Sendable {
             // Never shown: one route, and it borrows the login Grok's own CLI
             // stored, exactly as Cursor's does.
             .localized("Reads your account's limits with the login Grok saved.")
-        case (_, .xiaomiMiMo), (_, .workbuddy):
+        case (_, .xiaomiMiMo), (_, .workbuddy), (_, .doubao):
             // Never shown: one route, and it reads the console with the
             // browser session rather than with a key.
             .localized("Reads the console with your signed-in browser session.")

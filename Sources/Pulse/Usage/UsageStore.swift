@@ -406,6 +406,7 @@ final class UsageStore {
         let ollama = OllamaCloudUsageService(cookie: apiKeys[.ollamaCloud])
         let xiaomi = XiaomiMiMoUsageService(cookie: apiKeys[.xiaomiMiMo])
         let workbuddy = WorkBuddyUsageService(cookie: apiKeys[.workbuddy])
+        let doubao = DoubaoUsageService(cookie: apiKeys[.doubao])
         let zai = ZaiUsageService(provider: .zai, enteredKey: apiKeys[.zai])
         let glm = ZaiUsageService(provider: .glmCoding, enteredKey: apiKeys[.glmCoding])
         let minimax = MiniMaxUsageService(provider: .minimax, enteredKey: apiKeys[.minimax])
@@ -474,6 +475,9 @@ final class UsageStore {
             async let workbuddyUsage = wanted.contains(.workbuddy)
                 ? await workbuddy.fetch()
                 : ProviderUsage.unavailable(.workbuddy, reason: .loading)
+            async let doubaoUsage = wanted.contains(.doubao)
+                ? await doubao.fetch()
+                : ProviderUsage.unavailable(.doubao, reason: .loading)
             async let kimiUsage = wanted.contains(.kimiCode)
                 ? await kimi.fetch()
                 : ProviderUsage.unavailable(.kimiCode, reason: .loading)
@@ -519,7 +523,7 @@ final class UsageStore {
             let (rawCopilot, rawGrok, rawGrokBot) = await (copilotUsage, grokUsage, grokBotUsage)
             let (rawVolcengine, rawCommandCode) = await (volcengineUsage, commandCodeUsage)
             let (rawDeepSeek, rawDevin) = await (deepSeekUsage, devinUsage)
-            let (rawXiaomi, rawWorkBuddy) = await (xiaomiUsage, workbuddyUsage)
+            let (rawXiaomi, rawWorkBuddy, rawDoubao) = await (xiaomiUsage, workbuddyUsage, doubaoUsage)
 
             // **The disowning is checked before anything is written, not just
             // before the readings are handed to the panel.** `reconciled`
@@ -561,6 +565,7 @@ final class UsageStore {
                 (.devin, rawDevin),
                 (.xiaomiMiMo, rawXiaomi),
                 (.workbuddy, rawWorkBuddy),
+                (.doubao, rawDoubao),
             ] where wanted.contains(provider) {
                 results.append(BatchResult(
                     provider: provider,
@@ -658,6 +663,7 @@ final class UsageStore {
         let ollama = OllamaCloudUsageService(cookie: key)
         let xiaomi = XiaomiMiMoUsageService(cookie: key)
         let workbuddy = WorkBuddyUsageService(cookie: key)
+        let doubao = DoubaoUsageService(cookie: key)
         let zai = ZaiUsageService(provider: provider, enteredKey: key)
         let minimax = MiniMaxUsageService(provider: provider, enteredKey: key)
         let volcengine = VolcengineUsageService(enteredKey: key)
@@ -715,6 +721,8 @@ final class UsageStore {
                 raw = await xiaomi.fetch()
             case .workbuddy:
                 raw = await workbuddy.fetch()
+            case .doubao:
+                raw = await doubao.fetch()
             }
             }
 
@@ -787,7 +795,7 @@ final class UsageStore {
         // Nothing else can be signed in to, so nothing else gets here.
         case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .volcengine,
-             .commandCode, .deepSeek, .devin, .xiaomiMiMo, .workbuddy:
+             .commandCode, .deepSeek, .devin, .xiaomiMiMo, .workbuddy, .doubao:
             .unavailable(account, reason: .loading)
         }
     }

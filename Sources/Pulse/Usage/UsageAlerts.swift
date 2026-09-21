@@ -387,7 +387,7 @@ struct AlertMemory: Codable, Sendable, Equatable {
         case .claudeLoginExpired, .claudeDesktopKeyRefused, .claudeDesktopSessionExpired,
              .cursorLoginExpired, .grokLoginExpired, .signedOut, .apiKeyRefused,
              .ollamaSessionExpired, .ollamaPageChanged, .xiaomiSessionExpired,
-             .workbuddySessionExpired,
+             .workbuddySessionExpired, .doubaoSessionExpired,
              .unreachable, .unreadableReply, .rateLimited, .serverError,
              .codexServerFailed:
             .failure
@@ -406,7 +406,8 @@ struct AlertMemory: Codable, Sendable, Equatable {
              // And the same again for Xiaomi: the session worked and the
              // account simply has no plan on it.
              .xiaomiNoCodingPlan,
-             .workbuddyNoPlan:
+             .workbuddyNoPlan,
+             .doubaoNoPlan:
             .answered
 
         // Never set up, never signed in, or an app that simply is not
@@ -417,6 +418,7 @@ struct AlertMemory: Codable, Sendable, Equatable {
              .codexNotInstalled, .antigravityNotRunning, .antigravityNotAnswering,
              .cursorSignInRequired, .grokSignInRequired, .notSignedIn,
              .ollamaSessionMissing, .xiaomiSessionMissing, .workbuddySessionMissing,
+             .doubaoSessionMissing,
              .apiKeyMissing, .volcengineCLIMissing,
              .volcengineSignInRequired,
              // An app that was never installed or never signed in, which is

@@ -591,6 +591,16 @@
 "购买积分" = "Purchased Credits";
 "体验版" = "Free Trial";
 
+/* Doubao Work */
+"Doubao Work" = "Doubao Work";
+"No Doubao session found. Sign in at doubao.com first." = "No Doubao session found. Sign in at doubao.com first.";
+"Sign in to Doubao in a browser or paste your session cookie in Settings." = "Sign in to Doubao in a browser or paste your session cookie in Settings.";
+"Doubao's saved session expired. Sign in again in your browser." = "Doubao's saved session expired. Sign in again in your browser.";
+"No active plan on this Doubao account." = "No active plan on this Doubao account.";
+"Read from DoubaoWork Desktop%@." = "Read from DoubaoWork Desktop%@.";
+"标准套餐" = "Standard Plan";
+"个人订阅" = "Personal Subscription";
+
 
 /* Network proxy */
 "Network" = "Network";

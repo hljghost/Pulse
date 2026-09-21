@@ -487,6 +487,9 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
         case workbuddySessionMissing
         case workbuddySessionExpired
         case workbuddyNoPlan
+        case doubaoSessionMissing
+        case doubaoSessionExpired
+        case doubaoNoPlan
         /// No key has been entered for a provider that needs one.
         case apiKeyMissing
         /// There is a key, and the service refused it.
@@ -525,6 +528,9 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
             case .workbuddySessionMissing: .localized("Sign in to WorkBuddy in a browser or paste your session cookie in Settings.")
             case .workbuddySessionExpired: .localized("WorkBuddy's saved session expired. Sign in again in your browser.")
             case .workbuddyNoPlan: .localized("No active plan or credits on this WorkBuddy account.")
+            case .doubaoSessionMissing: .localized("Sign in to Doubao in a browser or paste your session cookie in Settings.")
+            case .doubaoSessionExpired: .localized("Doubao's saved session expired. Sign in again in your browser.")
+            case .doubaoNoPlan: .localized("No active plan on this Doubao account.")
             case .ollamaSessionMissing: .localized("Add an Ollama session in Settings.")
             case .ollamaSessionExpired: .localized("The Ollama session expired. Sign in again and add it.")
             case .ollamaPageChanged: .localized("Ollama's page has changed and can no longer be read.")

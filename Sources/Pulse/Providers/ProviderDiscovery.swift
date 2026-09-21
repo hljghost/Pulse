@@ -35,6 +35,11 @@ extension Provider {
             }
         case .workbuddy:
             return app("WorkBuddy") + app("WorkBuddy AI") + [local("Library/Application Support/WorkBuddy")]
+        case .doubao:
+            return app("DoubaoWork") + app("Doubao") + [
+                local("Library/Application Support/DoubaoWork"),
+                local("Library/Application Support/Doubao")
+            ]
         case .kimiCode, .ollamaCloud, .zai, .minimax, .minimaxCN, .copilot,
              .volcengine, .deepSeek, .xiaomiMiMo:
             return []

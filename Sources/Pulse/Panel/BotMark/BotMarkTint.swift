@@ -41,6 +41,8 @@ enum BotMarkTint {
         case .xiaomiMiMo: BotMarkPalette.rgb(0xFF6900)
         // WorkBuddy's Tencent tech blue.
         case .workbuddy: BotMarkPalette.rgb(0x0052D9)
+        // Doubao's ByteDance tech blue.
+        case .doubao: BotMarkPalette.rgb(0x0057FF)
         case .codex, .cursor, .openCodeGo, .ollamaCloud, .zai,
              .copilot, .grok, .grokBot, .commandCode, .devin:
             nil

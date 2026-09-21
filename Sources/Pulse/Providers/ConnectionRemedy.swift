@@ -35,12 +35,13 @@ enum ConnectionRemedy: Equatable {
         case .apiKeyMissing, .apiKeyRefused, .devinOrganizationMissing: return .editCredential
         case .ollamaSessionMissing, .ollamaSessionExpired,
              .xiaomiSessionMissing, .xiaomiSessionExpired,
-             .workbuddySessionMissing, .workbuddySessionExpired: return .readBrowser
+             .workbuddySessionMissing, .workbuddySessionExpired,
+             .doubaoSessionMissing, .doubaoSessionExpired: return .readBrowser
         case .claudeDesktopKeyRefused, .unreachable, .rateLimited, .serverError,
              .codexServerFailed: return .retry
         case .codexNotInstalled, .volcengineCLIMissing, .noLimitsReported,
              .grokBotNotIncluded, .zaiNoCodingPlan, .xiaomiNoCodingPlan,
-             .workbuddyNoPlan, .ollamaPageChanged, .unreadableReply:
+             .workbuddyNoPlan, .doubaoNoPlan, .ollamaPageChanged, .unreadableReply:
             return .help
         }
     }
@@ -69,6 +70,7 @@ enum ConnectionRemedy: Equatable {
         case .ollamaCloud: "ollama-cloud"
         case .xiaomiMiMo: "xiaomi-coding-plan"
         case .workbuddy: "workbuddy"
+        case .doubao: "doubao"
         case .zai, .glmCoding: "zai"
         case .minimax, .minimaxCN: "minimax"
         case .copilot: "copilot"
