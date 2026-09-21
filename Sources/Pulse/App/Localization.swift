@@ -163,6 +163,10 @@ extension String {
     static func localized(_ key: String.LocalizationValue) -> String {
         String(localized: key, bundle: LocalizationSource.bundle)
     }
+
+    static func localized(string key: String) -> String {
+        String(localized: String.LocalizationValue(key), bundle: LocalizationSource.bundle)
+    }
 }
 
 extension Text {

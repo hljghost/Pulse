@@ -1192,6 +1192,9 @@ struct SettingsView: View {
             case .xiaomiMiMo:
                 host = XiaomiMiMoClient.host
                 keep = { try? XiaomiMiMoCookie.normalize($0) }
+            case .workbuddy:
+                host = WorkBuddyClient.host
+                keep = { try? WorkBuddyCookie.normalize($0) }
             case .claudeCode, .codex, .antigravity, .cursor, .openCodeGo,
                  .kimiCode, .zai, .glmCoding, .minimax, .minimaxCN, .copilot,
                  .grok, .grokBot, .volcengine, .commandCode, .deepSeek, .devin:
@@ -1200,8 +1203,30 @@ struct SettingsView: View {
                 return
             }
 
-            let found = await Task.detached(priority: .userInitiated) {
-                BrowserCookies.session(forHost: host, allowing: browsers, keep: keep)
+            if account.provider == .workbuddy {
+                if let desktop = WorkBuddyDesktopSession.readSession() {
+                    let token = desktop.token
+                    guard APIKeyStore.setKey(token, for: account.provider) else { return }
+                    store.loadAPIKeys()
+                    store.refresh(account)
+                    if pane == .account(account) {
+                        apiKey = token
+                        savedKey = token
+                        let name = desktop.nickname.map { " (\($0))" } ?? ""
+                        sessionMessage = String.localized("Read from WorkBuddy Desktop\(name).")
+                    }
+                    return
+                }
+            }
+
+            let found = await Task.detached(priority: .userInitiated) { () -> BrowserCookies.Found? in
+                if let res = BrowserCookies.session(forHost: host, allowing: browsers, keep: keep) {
+                    return res
+                }
+                if account.provider == .workbuddy {
+                    return BrowserCookies.session(forHost: WorkBuddyClient.fallbackHost, allowing: browsers, keep: keep)
+                }
+                return nil
             }.value
 
             if let found {
@@ -1224,6 +1249,8 @@ struct SettingsView: View {
                 sessionMessage = switch account.provider {
                 case .xiaomiMiMo:
                     String.localized("No Xiaomi session found. Sign in at platform.xiaomimimo.com first.")
+                case .workbuddy:
+                    String.localized("No WorkBuddy session found. Sign in at workbuddy.cn or codebuddy.cn first.")
                 default:
                     String.localized("No Ollama session found. Sign in at ollama.com first.")
                 }

@@ -64,6 +64,7 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         /// OpenCode Go's billing period. The others' longest window is a
         /// week, so this one had nowhere to map.
         case monthly
+        case named(String)
         case other(seconds: Int)
     }
 
@@ -246,6 +247,7 @@ struct UsageWindow: Identifiable, Equatable, Codable, Sendable {
         case .daily: .localized("Daily limit")
         case .messages: .localized("Message allowance")
         case .monthly: .localized("Monthly limit")
+        case .named(let str): .localized(string: str)
         case .other(let seconds):
             seconds >= 86_400
                 ? .localized("\("\(Int((Double(seconds) / 86_400).rounded()))")-day limit")
@@ -482,6 +484,9 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
         /// buys tokens by the yuan instead. A complete answer, not a fault,
         /// and the same distinction `zaiNoCodingPlan` exists for.
         case xiaomiNoCodingPlan
+        case workbuddySessionMissing
+        case workbuddySessionExpired
+        case workbuddyNoPlan
         /// No key has been entered for a provider that needs one.
         case apiKeyMissing
         /// There is a key, and the service refused it.
@@ -517,6 +522,9 @@ struct ProviderUsage: Identifiable, Equatable, Sendable {
             case .xiaomiSessionMissing: .localized("Sign in to Xiaomi's platform in a browser to see usage.")
             case .xiaomiSessionExpired: .localized("Xiaomi's saved session expired. Sign in again in your browser.")
             case .xiaomiNoCodingPlan: .localized("No Coding Plan on this Xiaomi account.")
+            case .workbuddySessionMissing: .localized("Sign in to WorkBuddy in a browser or paste your session cookie in Settings.")
+            case .workbuddySessionExpired: .localized("WorkBuddy's saved session expired. Sign in again in your browser.")
+            case .workbuddyNoPlan: .localized("No active plan or credits on this WorkBuddy account.")
             case .ollamaSessionMissing: .localized("Add an Ollama session in Settings.")
             case .ollamaSessionExpired: .localized("The Ollama session expired. Sign in again and add it.")
             case .ollamaPageChanged: .localized("Ollama's page has changed and can no longer be read.")

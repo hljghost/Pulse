@@ -25,6 +25,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     case deepSeek
     case devin
     case xiaomiMiMo
+    case workbuddy
 
     var id: String { rawValue }
 
@@ -86,6 +87,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // denominator and the thing the buyer signed up for. "Xiaomi MiMo"
         // would name the platform and leave the two products sharing a row.
         case .xiaomiMiMo: "Xiaomi Coding Plan"
+        case .workbuddy: "WorkBuddy"
         }
     }
 
@@ -128,6 +130,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // does not use; at ring size it reads as a shape rather than as words,
         // which is the trade for being the real mark.
         case .xiaomiMiMo: "xiaomimimo"
+        case .workbuddy: "workbuddy"
         }
     }
 
@@ -150,7 +153,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // which is true today and better than a column of zeroes.
         case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .grok, .grokBot,
-             .volcengine, .commandCode, .deepSeek, .devin, .xiaomiMiMo: false
+             .volcengine, .commandCode, .deepSeek, .devin, .xiaomiMiMo, .workbuddy: false
         }
     }
 
@@ -197,7 +200,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         case .claudeCode, .codex, .volcengine, .devin: true
         case .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .grok, .grokBot,
-             .commandCode, .deepSeek, .xiaomiMiMo: false
+             .commandCode, .deepSeek, .xiaomiMiMo, .workbuddy: false
         }
     }
 
@@ -233,7 +236,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
         // about elsewhere, so there is nothing here to state.
         case .claudeCode, .codex, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .volcengine,
-             .commandCode, .deepSeek, .devin, .xiaomiMiMo:
+             .commandCode, .deepSeek, .devin, .xiaomiMiMo, .workbuddy:
             nil
         }
     }
@@ -245,7 +248,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     /// anyone on the plan who doesn't run the CLI on this Mac.
     var usesAPIKey: Bool {
         [.openCodeGo, .kimiCode, .ollamaCloud, .zai, .glmCoding, .minimax, .minimaxCN, .volcengine,
-         .commandCode, .deepSeek, .devin, .xiaomiMiMo].contains(self)
+         .commandCode, .deepSeek, .devin, .xiaomiMiMo, .workbuddy].contains(self)
     }
 
     /// Whether this Mac can see the thing this provider is billing for.
@@ -283,7 +286,7 @@ enum Provider: String, CaseIterable, Identifiable, Codable, Sendable {
     /// Xiaomi joins it for the same reason: the platform's API keys buy
     /// inference and answer none of the console's account routes, so the plan
     /// and the balance are behind the web session and nothing else.
-    var usesSessionCookie: Bool { self == .ollamaCloud || self == .xiaomiMiMo }
+    var usesSessionCookie: Bool { self == .ollamaCloud || self == .xiaomiMiMo || self == .workbuddy }
 
     /// Whether this provider's credential is read out of a browser rather than
     /// out of another tool's files.

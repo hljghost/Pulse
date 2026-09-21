@@ -33,6 +33,8 @@ extension Provider {
             return ["Devin", "Windsurf"].map {
                 local("Library/Application Support/\($0)/User/globalStorage/state.vscdb")
             }
+        case .workbuddy:
+            return app("WorkBuddy") + app("WorkBuddy AI") + [local("Library/Application Support/WorkBuddy")]
         case .kimiCode, .ollamaCloud, .zai, .minimax, .minimaxCN, .copilot,
              .volcengine, .deepSeek, .xiaomiMiMo:
             return []

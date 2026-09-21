@@ -139,8 +139,17 @@ struct UsageDetailCard: View {
             // and the message below covered it. DeepSeek on "balance only"
             // reports money and no limits *by design*, and the money is then
             // the whole reading — so it is what the card says.
-            if usage.windows.isEmpty, let balance = usage.creditBalance {
-                ValueRow(title: String.localized("Credit balance"), value: balance)
+            if let balance = usage.creditBalance {
+                if !usage.windows.isEmpty {
+                    Divider()
+                        .opacity(0.15)
+                }
+                ValueRow(
+                    title: usage.windows.isEmpty
+                        ? String.localized("Credit balance")
+                        : String.localized("Total Remaining"),
+                    value: balance
+                )
             }
 
             // The same rule for the other way a body can come out empty: a
@@ -262,6 +271,15 @@ struct UsageDetailCard: View {
                 .foregroundStyle(.primary)
 
             Spacer(minLength: 0)
+
+            if let plan = usage.plan, !plan.isEmpty {
+                Text(plan)
+                    .font(.system(size: DetailCardLayout.footnoteFontSize, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary.opacity(0.85))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.primary.opacity(0.08), in: Capsule())
+            }
         }
     }
 }
@@ -279,19 +297,41 @@ private struct ValueRow: View {
     let title: String
     let value: String
 
+    private var parsed: (main: String, detail: String?) {
+        if let openIdx = value.firstIndex(of: "("),
+           let closeIdx = value.lastIndex(of: ")"),
+           openIdx < closeIdx {
+            let main = String(value[..<openIdx]).trimmingCharacters(in: .whitespaces)
+            let detail = String(value[value.index(after: openIdx)..<closeIdx]).trimmingCharacters(in: .whitespaces)
+            return (main, detail.isEmpty ? nil : detail)
+        }
+        return (value, nil)
+    }
+
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(title)
-                .foregroundStyle(.primary)
-                .font(.system(size: DetailCardLayout.rowFontSize, weight: .regular, design: .rounded))
+        let (main, detail) = parsed
+        VStack(alignment: .leading, spacing: 3 * PanelMetrics.scale) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(title)
+                    .foregroundStyle(.primary)
+                    .font(.system(size: DetailCardLayout.rowFontSize, weight: .regular, design: .rounded))
+                    .lineLimit(1)
+                    .layoutPriority(1)
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 8)
 
-            Text(value)
-                .font(.system(size: DetailCardLayout.rowFontSize, weight: .medium, design: .rounded))
-                .foregroundStyle(.primary.opacity(0.9))
-                .lineLimit(1)
-                .layoutPriority(1)
+                Text(main)
+                    .font(.system(size: DetailCardLayout.rowFontSize, weight: .medium, design: .rounded))
+                    .foregroundStyle(.primary.opacity(0.9))
+                    .lineLimit(1)
+            }
+
+            if let detail {
+                Text(detail)
+                    .font(.system(size: 10 * PanelMetrics.scale, weight: .regular, design: .rounded))
+                    .foregroundStyle(.primary.opacity(0.45))
+                    .lineLimit(1)
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)

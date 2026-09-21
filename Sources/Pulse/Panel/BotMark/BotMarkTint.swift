@@ -39,6 +39,8 @@ enum BotMarkTint {
         // Xiaomi's orange. The MiMo console is black-on-white, but the parent
         // brand's colour is the one a reader recognises on a rail.
         case .xiaomiMiMo: BotMarkPalette.rgb(0xFF6900)
+        // WorkBuddy's Tencent tech blue.
+        case .workbuddy: BotMarkPalette.rgb(0x0052D9)
         case .codex, .cursor, .openCodeGo, .ollamaCloud, .zai,
              .copilot, .grok, .grokBot, .commandCode, .devin:
             nil

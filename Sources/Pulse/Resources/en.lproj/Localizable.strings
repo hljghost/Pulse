@@ -579,6 +579,19 @@
 "No Coding Plan on this Xiaomi account." = "No Coding Plan on this Xiaomi account.";
 "Reads the console with your signed-in browser session." = "Reads the console with your signed-in browser session.";
 
+/* WorkBuddy */
+"No WorkBuddy session found. Sign in at workbuddy.cn or codebuddy.cn first." = "No WorkBuddy session found. Sign in at workbuddy.cn or codebuddy.cn first.";
+"Sign in to WorkBuddy in a browser or paste your session cookie in Settings." = "Sign in to WorkBuddy in a browser or paste your session cookie in Settings.";
+"WorkBuddy's saved session expired. Sign in again in your browser." = "WorkBuddy's saved session expired. Sign in again in your browser.";
+"No active plan or credits on this WorkBuddy account." = "No active plan or credits on this WorkBuddy account.";
+"Total Remaining" = "Total Remaining";
+"Read from WorkBuddy Desktop%@." = "Read from WorkBuddy Desktop%@.";
+"套餐基础积分" = "Base Credits";
+"平台奖励积分" = "Reward Credits";
+"购买积分" = "Purchased Credits";
+"体验版" = "Free Trial";
+
+
 /* Network proxy */
 "Network" = "Network";
 "Proxy" = "Proxy";

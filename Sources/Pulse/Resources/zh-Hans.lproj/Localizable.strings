@@ -579,6 +579,19 @@
 "No Coding Plan on this Xiaomi account." = "这个小米账号上没有 Coding Plan。";
 "Reads the console with your signed-in browser session." = "用你已登录的浏览器会话读取控制台。";
 
+/* WorkBuddy */
+"No WorkBuddy session found. Sign in at workbuddy.cn or codebuddy.cn first." = "没找到 WorkBuddy 的登录信息。请先在 workbuddy.cn 或 codebuddy.cn 登录。";
+"Sign in to WorkBuddy in a browser or paste your session cookie in Settings." = "在浏览器里登录 WorkBuddy 或在设置中填入 Cookie 后才能看到用量。";
+"WorkBuddy's saved session expired. Sign in again in your browser." = "WorkBuddy 的登录信息已过期，请在浏览器里重新登录。";
+"No active plan or credits on this WorkBuddy account." = "这个 WorkBuddy 账号上没有生效的套餐积分。";
+"Total Remaining" = "总剩余积分";
+"Read from WorkBuddy Desktop%@." = "已从 WorkBuddy 桌面端读取%@。";
+"套餐基础积分" = "套餐基础积分";
+"平台奖励积分" = "平台奖励积分";
+"购买积分" = "购买积分";
+"体验版" = "体验版";
+
+
 /* 网络代理 */
 "Network" = "网络";
 "Proxy" = "代理";
