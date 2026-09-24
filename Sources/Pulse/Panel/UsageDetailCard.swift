@@ -131,6 +131,7 @@ struct UsageDetailCard: View {
                     // rather than being told in advance which they are.
                     burn: showsForecast ? BurnRate.reading(for: window) : nil
                 )
+                .transition(Self.rowTransition)
             }
 
             // **A card with only a title in it reads as a card that failed to
@@ -179,22 +180,53 @@ struct UsageDetailCard: View {
         // Room for the pointer on the side facing the rail. The shape below
         // covers the whole frame, body and pointer together.
         .padding(Self.pointerSide(for: edge), DetailCardLayout.pointerWidth)
+        // **Inside the card, never ahead of it.** Switching between two cards
+        // of different heights keeps this one view and swaps its rows: the
+        // outline grows on the panel's spring, but a row the new card adds is
+        // laid out at its final place at once, so it stood outside a card
+        // that had not reached it yet — the text arriving before the card.
+        // Masked to the same outline, the card uncovers it as it grows.
+        // The content only: the surface keeps its own edge, where glass
+        // draws a rim this would cut.
+        .mask { bubble }
         // The card follows the rail's surface: a glass capsule beside a solid
         // black card reads as two different components, not one panel.
-        .background(
-            {
-                let shape = UsageBubbleShape(
-                    edge: edge,
-                    pointerCenter: pointerCenter,
-                    cornerRadius: DetailCardLayout.cornerRadius,
-                    pointerWidth: DetailCardLayout.pointerWidth,
-                    pointerHeight: DetailCardLayout.pointerHeight
-                )
-                return PanelSurface(shape: shape, usesGlass: usesGlass)
-            }()
-        )
+        .background(PanelSurface(shape: bubble, usesGlass: usesGlass))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(String.localized("\(title ?? usage.provider.displayName) usage details"))
+    }
+
+    /// A limit the next card has and this one did not waits for the card to
+    /// grow, then settles in; one it loses leaves at once.
+    ///
+    /// Arriving with the outline instead — the default — put the row at its
+    /// final place on the first frame, so it either stood outside a card that
+    /// had not reached it yet or, masked, was wiped on by the card's edge. Both
+    /// read as a row popping in. A short wait lets the outline get ahead of
+    /// it, so it is a card that grew, and then filled.
+    ///
+    /// **Short, because the rail is swept.** Running the pointer down the
+    /// rings switches cards every tenth of a second, and every switch restarts
+    /// this. At 0.14s + 0.22s the card spent most of a sweep empty — a black
+    /// card with nothing in it. 0.06s + 0.14s still trails the outline and is
+    /// done before the next ring.
+    private static var rowTransition: AnyTransition {
+        .asymmetric(
+            insertion: .opacity
+                .combined(with: .offset(y: -6))
+                .animation(.easeOut(duration: 0.14).delay(0.06)),
+            removal: .opacity.animation(.easeOut(duration: 0.06))
+        )
+    }
+
+    private var bubble: UsageBubbleShape {
+        UsageBubbleShape(
+            edge: edge,
+            pointerCenter: pointerCenter,
+            cornerRadius: DetailCardLayout.cornerRadius,
+            pointerWidth: DetailCardLayout.pointerWidth,
+            pointerHeight: DetailCardLayout.pointerHeight
+        )
     }
 
     /// Which side of the card the tail leaves from: the one facing the rail.
@@ -231,6 +263,12 @@ struct UsageDetailCard: View {
     }
 
     private static func resetText(_ window: UsageWindow) -> String {
+        // **Whichever happens first.** Credits lapsing before a reset hands
+        // the allowance back are the thing to know; after it, the reset is.
+        if let expiry = window.nextExpiry, window.resetsAt.map({ expiry.at < $0 }) ?? true {
+            return expiryText(expiry)
+        }
+
         // **The fallback may only state a length the provider stated.**
         // `windowSeconds` is sometimes a sort key rather than a measurement —
         // Cursor's billing cycle stored as a flat 30 days, Kimi's rolling
@@ -250,6 +288,23 @@ struct UsageDetailCard: View {
         return String.localized("Resets \(formatter.string(from: resets))")
     }
 
+    /// "10月18日 86 积分到期". The date alone unless it is today — a pack
+    /// ends at whatever minute it was granted, and that minute is noise a
+    /// week out.
+    private static func expiryText(_ expiry: UsageWindow.Expiry) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = LocalizationSource.locale
+        formatter.setLocalizedDateFormatFromTemplate(
+            Calendar.current.isDateInToday(expiry.at) ? "jmm" : "MMMd"
+        )
+        // StepFun counts in Credits of which a plan holds billions: "1,599,913,834"
+        // does not fit the slot, and the scale is the point, as with tokens.
+        let amount = expiry.amount >= 10_000
+            ? TokenCount.short(Int(expiry.amount))
+            : expiry.amount.formatted(.number.precision(.fractionLength(0...1)).locale(LocalizationSource.locale))
+        return String.localized("\(formatter.string(from: expiry.at)): \(amount) credits expire")
+    }
+
     private static func relative(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
@@ -257,32 +312,54 @@ struct UsageDetailCard: View {
     }
 
     private var header: some View {
-        HStack(spacing: 8) {
-            LobeIconView(provider: usage.provider, size: DetailCardLayout.headerIconSize)
-                .foregroundStyle(.primary)
+        // Another account's header replaces this one rather than cross-fading
+        // through it: two titles of different lengths drawn over each other
+        // for the length of the fade read as a smudge. Stacked so the outgoing
+        // one keeps no room in the row while it leaves.
+        ZStack(alignment: .leading) {
+            HStack(spacing: 8) {
+                LobeIconView(provider: usage.provider, size: DetailCardLayout.headerIconSize)
+                    .foregroundStyle(.primary)
 
-            Text(localized: "\(title ?? usage.provider.displayName) Usage")
-                // One line, always. The card's height is worked out from
-                // `DetailCardLayout` before SwiftUI lays anything out, so a
-                // header that wrapped would make the card taller than the
-                // window budgeted for it and get sliced off against the edge.
-                .lineLimit(1)
-                .font(.system(size: DetailCardLayout.titleFontSize, weight: .semibold, design: .rounded))
-                .foregroundStyle(.primary)
-                .layoutPriority(1)
-
-            Spacer(minLength: 4)
-
-            if let plan = usage.plan, !plan.isEmpty {
-                Text(plan)
-                    .font(.system(size: DetailCardLayout.footnoteFontSize, weight: .medium, design: .rounded))
-                    .foregroundStyle(.primary.opacity(0.85))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.primary.opacity(0.08), in: Capsule())
+                Text(localized: "\(title ?? usage.provider.displayName) Usage")
+                    // One line, always. The card's height is worked out from
+                    // `DetailCardLayout` before SwiftUI lays anything out, so a
+                    // header that wrapped would make the card taller than the
+                    // window budgeted for it and get sliced off against the edge.
                     .lineLimit(1)
+                    .font(.system(size: DetailCardLayout.titleFontSize, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.primary)
+                    .layoutPriority(1)
+
+                Spacer(minLength: 4)
+
+                if let plan = usage.plan, !plan.isEmpty {
+                    Text(plan)
+                        .font(.system(size: DetailCardLayout.footnoteFontSize, weight: .medium, design: .rounded))
+                        .foregroundStyle(.primary.opacity(0.85))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.primary.opacity(0.08), in: Capsule())
+                        .lineLimit(1)
+                }
             }
+            .id("\(usage.id)|\(title ?? "")")
+            .transition(Self.headerTransition)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The old one gone almost at once, the new one in straight away.
+    ///
+    /// No wait before the new one: waiting left the header blank for most of a
+    /// sweep down the rail (see `rowTransition`). The overlap that remains is
+    /// a few hundredths of a second with the old title nearly gone — not the
+    /// two-titles smudge a plain cross-fade drew.
+    private static var headerTransition: AnyTransition {
+        .asymmetric(
+            insertion: .opacity.animation(.easeOut(duration: 0.1)),
+            removal: .opacity.animation(.easeOut(duration: 0.06))
+        )
     }
 }
 
@@ -399,6 +476,12 @@ private struct ProgressMetricRow: View {
                 Text(figureLabel)
                     .font(.system(size: DetailCardLayout.rowFontSize, weight: .medium, design: .rounded))
                     .foregroundStyle(isSpent ? Color.pulseExhausted : .primary.opacity(0.9))
+                    // Swapped outright. A cross-fade drew two figures over each
+                    // other; a numeric roll left the digits mid-turn — blank —
+                    // for most of a sweep down the rail, since every switch
+                    // restarts it. A figure that is simply the next one is
+                    // readable on every frame.
+                    .contentTransition(.identity)
 
                 Spacer(minLength: 0)
 

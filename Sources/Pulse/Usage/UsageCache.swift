@@ -72,6 +72,14 @@ actor UsageCache {
     /// something, whichever was actually taken later.
     func reconciled(_ result: ProviderUsage) -> ProviderUsage {
         let fetched = result.recordingSoleRoute()
+        // Qoder confirmed there is no allowance, or StepFun that there is no
+        // Step Plan. It supersedes the old figures, including on the next
+        // launch and in the cached JSON export. A failed or unreadable request
+        // still uses the ordinary fallback.
+        if fetched.state == .unavailable(.qoderNoCredits) || fetched.state == .unavailable(.stepFunNoPlan) {
+            discard(for: fetched.account)
+            return fetched
+        }
         let now = Date()
         let valid = fetched.current(at: now)
 
@@ -144,9 +152,13 @@ actor UsageCache {
         // nothing to come back to: showing yesterday's percentages for up to a
         // day, while Settings holds an empty field, hides the one thing the
         // user needs told. Reported as it is.
+        // A gateway with no usable address is the same case: there is no
+        // server to have a reading from. So is a Qoder session discarded
+        // because the site changed: what is banked is the other site's.
         if case .unavailable(let reason) = fetched.state,
-           [.apiKeyMissing, .ollamaSessionMissing, .signedOut,
-            .claudeDesktopNotSignedIn, .claudeDesktopKeyRefused].contains(reason) {
+           [.apiKeyMissing, .ollamaSessionMissing, .qoderSessionMissing, .stepFunSessionMissing, .signedOut,
+            .claudeDesktopNotSignedIn, .claudeDesktopKeyRefused,
+            .serverAddressMissing, .serverAddressRefused].contains(reason) {
             return fetched
         }
 
@@ -188,6 +200,13 @@ actor UsageCache {
     private static func mayStandIn(for a: ProviderUsage, _ b: ProviderUsage) -> Bool {
         guard a.requiresScopeMatch else { return true }
         return UsageScope.match(a.sourceScope, b.sourceScope)
+    }
+
+    private func discard(for account: AccountKey) {
+        var all = load()
+        guard all.removeValue(forKey: account.id) != nil else { return }
+        readings = all
+        write(all)
     }
 
     private func store(_ usage: ProviderUsage) {

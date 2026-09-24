@@ -7,6 +7,76 @@ shows in the update window — see [Scripts/changelog.py](Scripts/changelog.py).
 Add the entry **before** tagging, in the small grammar the converter knows:
 bullets, `**bold**`, `` `code` `` and `[links](https://example.com)`.
 
+## 1.4.1
+
+**中文**
+
+**新功能**
+
+- **Qoder 显示积分包的到期日。** 每个积分包有自己的到期时间，卡片会显示最早到期的那批，例如「10月18日 86 积分到期」，同一天到期的合并计算；`--json` 也新增了 `expiresAt` 和 `expiringAmount`。感谢 [@momusticks](https://github.com/qunqin24/Pulse/issues/59) 提议。
+
+**改进与修复**
+
+- **Qoder 体验版账号不再显示「未返回任何限额」。** 大陆站体验版会返回一个早已过去的重置时间，Pulse 据此把整份读数当作过期丢掉了；现在忽略这个日期，照常显示剩余积分。感谢 [@momusticks](https://github.com/qunqin24/Pulse/issues/59) 查清原因。
+- **购买 Qoder 积分包不再被当成额度重置。** 买包后上限变大、用量比例骤降，之前会误发重置通知，小机器人也会庆祝；现在只有 Qoder 的重置时间往后推才算重置。
+- **Qoder 确认账号没有积分时，不再显示旧的百分比。** 之前缓存会把上一次的读数顶回来，重启后和 `--json` 里也是。感谢 [@tech-zjf](https://github.com/qunqin24/Pulse/pull/61)。
+- **模型价格不用重启也会更新。** 价格表过期后，下次读取时重新下载；下载失败就继续用旧表，五分钟后可再试。感谢 [@tech-zjf](https://github.com/qunqin24/Pulse/pull/60)。
+- **小机器人的眼神和动作恢复原版幅度。** 之前为了让眼睛不贴边、身体不出圆环，Pulse 额外压缩了眼神、手势和大幅动作，摇头只剩一半幅度；现在按原版动画播放，动作大时眼睛可能贴着边缘，头顶可能短暂超出圆环。
+- **鼠标移上胶囊时，小机器人依次转过去看。** 不再所有圆环在同一帧齐刷刷转向指针；每个各自晚一点注意到，约 0.4 秒平滑转过去。
+
+**English**
+
+**New**
+
+- **Qoder shows when your credit packs lapse.** Each pack has its own end date; the card now shows the soonest, such as "Oct 18: 86 credits expire", with packs ending the same day added together. `--json` gains `expiresAt` and `expiringAmount`. Thanks to [@momusticks](https://github.com/qunqin24/Pulse/issues/59) for asking.
+
+**Changed and fixed**
+
+- **A Qoder trial no longer shows "no limits reported".** The mainland site's trial replies with a reset date long past, and Pulse discarded the whole reading as expired. The date is now ignored and the remaining credits are shown. Thanks to [@momusticks](https://github.com/qunqin24/Pulse/issues/59) for tracking down the cause.
+- **Buying a Qoder pack is no longer read as a reset.** The larger limit made the used fraction drop, which sent a reset notification and set the bot celebrating. Only Qoder's reset date moving forward counts now.
+- **An old percentage no longer covers Qoder saying an account has no credits.** The cache brought the previous reading back, after relaunch and in `--json` too. Thanks to [@tech-zjf](https://github.com/qunqin24/Pulse/pull/61).
+- **Model prices refresh without restarting Pulse.** An expired price table is downloaded again on the next read; a failed download keeps the old one and may retry after five minutes. Thanks to [@tech-zjf](https://github.com/qunqin24/Pulse/pull/60).
+- **The bot moves as the original animation does.** Pulse had been damping its glances, gestures and larger moves to keep the eyes off the edge and the body inside the ring, so a head shake lost half its sweep. They play at full size again: an eye may touch the edge, and the top of the head may briefly leave the ring.
+- **The bots turn to an arriving pointer one after another.** Instead of every ring snapping to it in the same frame, each notices a moment later and turns over about 0.4 seconds.
+
+## 1.4.0
+
+**中文**
+
+**新功能**
+
+- **新增 Sub2API、New API、V2EX 和 Qoder，服务商增至二十四个。** 两个自建网关填入服务器地址和密钥即可读取余额或额度；V2EX 使用个人访问令牌读取 AI Chat 额度；Qoder 从浏览器读取 qoder.com 或 qoder.com.cn 的登录，显示积分额度，团队套餐的共享积分单独一个圆环。感谢 [@momusticks](https://github.com/qunqin24/Pulse/issues/59) 提议。
+- **真正的液态玻璃。** 开启后面板是透明、带折射的 macOS 26 液态玻璃，不再是一层磨砂；文字改为白色，并新增「透明度」滑块，可按常用背景调节玻璃明暗。设置中的名称也改回「液态玻璃」。
+- **时间圆环可以倒数。** 「距离重置的时间」的外圈可选「已过去」或「剩余」，剩余模式从满圈逐渐缩短到重置。感谢 [@Steven-oyjb](https://github.com/qunqin24/Pulse/pull/44)。
+- **Kiro 与 ZCode 也会显示工作动画。** Pulse 读取它们在本机写下的会话记录判断任务是否进行中；ZCode 只在配置的接口属于智谱或 z.ai 时才驱动对应圆环。感谢 [@guanbear](https://github.com/qunqin24/Pulse/pull/56)。
+- **设置按主题拆分成多个页面。** 外观、圆环与数字、位置与行为、通用、通知、网络与刷新各自独立；侧边栏搜索也能按设置项名称找到所在页面。
+- **每个服务都有配置指南。** 设置里的「配置帮助」现在打开专门写给用户的页面：密钥或登录从哪里获取、填到哪里、常见报错怎么处理。
+
+**改进与修复**
+
+- **贴边时鼠标推到屏幕最边缘不再误判离开。** 之前开启自动收起时，指针贴着边缘会让胶囊反复展开又收起。
+- **切换卡片更顺滑。** 高度不同的卡片之间切换时，新增的一行不再先于卡片出现在外面；快速扫过圆环时也不会看到空卡片。
+- **小机器人不再偶尔瞬移。** 庆祝转圈或变形动作被中途打断时，身体会平滑过渡，不再在一帧内跳转。
+- **Token 消耗：同名项目分开统计，无定价用量不再显示 $0.00。** 不同路径下的同名目录不再合并成一行；无法定价的会话和项目显示「—」或带 `*` 的小计。感谢 [@tech-zjf](https://github.com/qunqin24/Pulse/pull/57)（[#58](https://github.com/qunqin24/Pulse/pull/58)）。
+
+**English**
+
+**New**
+
+- **Sub2API, New API, V2EX and Qoder bring the count to twenty-four providers.** Both self-hosted gateways read a balance or allowance from a server address and key you enter; V2EX reads its AI Chat allowance with a Personal Access Token; Qoder reads your qoder.com or qoder.com.cn sign-in from the browser and shows your credits, with a team plan's shared credits as a ring of their own. Thanks to [@momusticks](https://github.com/qunqin24/Pulse/issues/59) for asking.
+- **Real Liquid Glass.** With glass on, the panel is clear, refracting macOS 26 Liquid Glass rather than a frosted layer. Text is drawn white, and a new **Transparency** slider sets how much the glass is dimmed for the backgrounds you usually work over. The setting is called Liquid Glass again in every language.
+- **The window clock can count down.** The outer arc of **Time until reset** can show time elapsed or time remaining; remaining starts full and empties toward the reset. Thanks to [@Steven-oyjb](https://github.com/qunqin24/Pulse/pull/44).
+- **Kiro and ZCode show activity too.** Pulse reads the session records they leave on this Mac to tell whether a turn is in flight; ZCode drives a ring only when its configured endpoint belongs to Zhipu or z.ai. Thanks to [@guanbear](https://github.com/qunqin24/Pulse/pull/56).
+- **Settings are split by subject.** Appearance, Rings and figures, Position and behavior, General, Notifications, and Network and refresh each have their own pane, and the sidebar search finds a pane by the names of its settings.
+- **Every provider has a setup guide.** **Setup help** now opens a page written for users: where the key or login comes from, where it goes in Pulse, and what each error means.
+
+**Changed and fixed**
+
+- **A pointer pushed against the screen edge no longer counts as leaving a docked rail.** With auto-collapse on, it used to open and close the rail over and over.
+- **Switching cards is smoother.** An added row no longer appears outside a card that has not grown yet, and sweeping across the rings no longer shows an empty card.
+- **The animated mark no longer jumps.** A celebration spin or a shape change interrupted mid-motion now eases into the next state instead of snapping in one frame.
+- **Token spend keeps same-name projects apart and stops showing unpriced use as $0.00.** Directories with the same name at different paths are no longer merged, and sessions or projects that cannot be priced show `—` or a subtotal marked `*`. Thanks to [@tech-zjf](https://github.com/qunqin24/Pulse/pull/57) ([#58](https://github.com/qunqin24/Pulse/pull/58)).
+
 ## 1.3.1
 
 **中文**
