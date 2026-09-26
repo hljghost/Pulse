@@ -42,9 +42,12 @@ struct SettingsView: View {
     /// The key field's contents. Seeded from the store when the pane opens;
     /// the store is a file, not something SwiftUI can observe.
     @State private var apiKey = ""
+    /// Whether the key field shows what is in it. Hidden again whenever
+    /// another pane opens, so a key shown once is not left on screen.
+    @State private var revealsKey = false
     /// The budget being typed, kept as text so a half-entered number is not
     /// read as a denominator on every keystroke.
-    @State private var deepSeekBudget = ""
+    @State private var balanceBudgetText = ""
     /// A self-hosted gateway's address being typed, committed on Save rather
     /// than on every keystroke — a half-typed host is a request nobody meant
     /// to make.
@@ -154,11 +157,43 @@ struct SettingsView: View {
                     }
                 }
 
-                if !matchingAccounts.isEmpty {
-                    Section(String.localized("Accounts")) {
-                        // Same order as the rail: a sidebar that disagreed with
-                        // the thing it configures is its own small confusion.
-                        ForEach(matchingAccounts) { account in
+                // What is switched on, first and together: with seventy-odd
+                // providers, the handful somebody actually uses were a scroll
+                // through the alphabet away. Rail order, both kinds.
+                let enabled = matchingProviderAccounts.filter(settings.isEnabled)
+                if !enabled.isEmpty {
+                    Section(String.localized("Enabled")) {
+                        ForEach(enabled) { account in
+                            row(.account(account))
+                        }
+                    }
+                }
+
+                // The rest, subscriptions and API accounts apart, each in rail
+                // order: a sidebar that disagreed with the thing it configures
+                // is its own small confusion. An enabled account is not listed
+                // again — two rows with one selection tag highlight together.
+                // See `Provider.Billing`.
+                ForEach(Provider.Billing.allCases, id: \.self) { billing in
+                    let accounts = matchingProviderAccounts.filter {
+                        $0.provider.billing == billing && !settings.isEnabled($0)
+                    }
+                    if !accounts.isEmpty {
+                        Section(billing.sectionTitle) {
+                            ForEach(accounts) { account in
+                                row(.account(account))
+                            }
+                        }
+                    }
+                }
+
+                // Apart from the accounts, as programs somebody added rather
+                // than services Pulse ships: the list says which is which
+                // before any pane is opened.
+                if matches(.extensions) || !matchingExtensionAccounts.isEmpty {
+                    Section(String.localized("Extensions")) {
+                        if matches(.extensions) { row(.extensions) }
+                        ForEach(matchingExtensionAccounts) { account in
                             row(.account(account))
                         }
                     }
@@ -202,12 +237,17 @@ struct SettingsView: View {
             // characters. So this number does not move with the language — it
             // moves when a provider with a longer name is added, which is how
             // `GLM Coding Plan` quietly became the longest.
-            .frame(minWidth: 200)
+            //
+            // And moved to 220 when `Alibaba Coding Plan` did: 121.4pt of text
+            // at the sidebar's 13pt against `Xiaomi Coding Plan`'s 117.3, and
+            // with the scroller showing — which it always is now, with
+            // seventy-odd rows — 200 cut it to "Alibaba Coding Pl…".
+            .frame(minWidth: 220)
             // Still worth setting: these bound what dragging the divider may
             // do. `ideal` matches the frame so first layout and every rebuild
             // land on the same width; `max` keeps a stretched sidebar from
             // eating the pane.
-            .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 320)
+            .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 320)
             // `.sidebar`, not `.automatic`: this window has no `NSToolbar` —
             // see `SettingsWindowController` on why the title bar is left to
             // AppKit — and automatic placement has nowhere to put the field.
@@ -218,7 +258,7 @@ struct SettingsView: View {
             )
             .overlay {
                 if isSearching, matchingAccounts.isEmpty,
-                   !(SettingsPane.panel + [.spend] + SettingsPane.application + SettingsPane.trailing).contains(where: matches) {
+                   !(SettingsPane.panel + [.spend, .extensions] + SettingsPane.application + SettingsPane.trailing).contains(where: matches) {
                     Text(localized: "No matches")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
@@ -279,6 +319,8 @@ struct SettingsView: View {
                             }
                         case .about: about
                         case .integrations: DeveloperIntegrationsView(settings: settings)
+                        case .extensions:
+                            ExtensionsSettingsView(settings: settings) { navigation.pane = .account($0) }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -368,6 +410,14 @@ struct SettingsView: View {
         return settings.orderedAccounts.filter {
             matches(title(.account($0))) || matches($0.provider.displayName)
         }
+    }
+
+    private var matchingProviderAccounts: [AccountKey] {
+        matchingAccounts.filter { $0.provider != .pulseExtension }
+    }
+
+    private var matchingExtensionAccounts: [AccountKey] {
+        matchingAccounts.filter { $0.provider == .pulseExtension }
     }
 
     /// By the pane's name, or by the name of any setting on it: with the
@@ -782,15 +832,16 @@ struct SettingsView: View {
                 // precise way to move one place, they are the only way that
                 // works from the keyboard, and they carry the accessibility
                 // labels — drag and drop has none to give.
-                ForEach(Array(settings.orderedAccounts.enumerated()), id: \.element) { index, account in
+                //
+                // **Only what the rail draws.** Every switched-off provider
+                // used to be listed too, marked "Not shown", which with
+                // seventy-odd of them buried the few rings being arranged.
+                // Something switched on later arrives at the end.
+                ForEach(Array(settings.shownAccounts.enumerated()), id: \.element) { index, account in
                     if index > 0 { SettingsRowDivider() }
 
                     SettingsRow(
                         settings.label(for: account),
-                        // Moving something the rail isn't drawing looks like
-                        // the arrow did nothing; saying so is kinder than
-                        // hiding the row and renumbering everything.
-                        subtitle: settings.isEnabled(account) ? nil : String.localized("Not shown"),
                         icon: account.provider.iconResource
                     ) {
                         HStack(spacing: 4) {
@@ -807,7 +858,7 @@ struct SettingsView: View {
                             } label: {
                                 Image(systemName: "chevron.down")
                             }
-                            .disabled(index == settings.orderedAccounts.count - 1)
+                            .disabled(index == settings.shownAccounts.count - 1)
                             .accessibilityLabel(String.localized("Move \(settings.label(for: account)) down"))
                         }
                         .buttonStyle(.borderless)
@@ -832,7 +883,7 @@ struct SettingsView: View {
                     .dropDestination(for: String.self) { ids, _ in
                         dropTarget = nil
                         guard let dragged = ids.first.flatMap(AccountKey.init(id:)),
-                              settings.orderedAccounts.contains(dragged)
+                              settings.shownAccounts.contains(dragged)
                         else { return false }
 
                         settings.move(dragged, onto: account)
@@ -1316,35 +1367,43 @@ struct SettingsView: View {
             // where Grok's pane described Antigravity's language server.
             let host: String
             let keep: @Sendable (String) -> String?
-            switch account.provider {
-            case .ollamaCloud:
-                host = "ollama.com"
-                keep = { try? OllamaSessionCookie.normalize($0) }
-            case .xiaomiMiMo:
-                host = XiaomiMiMoClient.host
-                keep = { try? XiaomiMiMoCookie.normalize($0) }
-            case .workbuddy:
-                host = WorkBuddyClient.host
-                keep = { try? WorkBuddyCookie.normalize($0) }
-            case .doubao:
-                host = DoubaoClient.host
-                keep = { try? DoubaoCookie.normalize($0) }
-            // The chosen site's host and no other: `qoder.com.cn`'s session
-            // is not `qoder.com`'s, and is never read on its behalf.
-            case .qoder:
-                host = settings.qoderSite.host
-                keep = { try? QoderCookie.normalize($0) }
-            // Likewise StepFun: the chosen console's host only.
-            case .stepFun:
-                host = settings.stepFunSite.host
-                keep = { try? StepFunCookie.normalize($0) }
-            case .claudeCode, .codex, .kiro, .antigravity, .cursor, .openCodeGo,
-                 .kimiCode, .zai, .glmCoding, .minimax, .minimaxCN, .copilot,
-                 .grok, .grokBot, .volcengine, .commandCode, .deepSeek, .devin,
-                 .sub2api, .newAPI, .v2ex:
-                // Not session-based: `readSession` sends those to
-                // `readBrowserStorage` before it gets here.
-                return
+            if let written = account.provider.handWritten {
+                switch written {
+                case .ollamaCloud:
+                    host = "ollama.com"
+                    keep = { try? OllamaSessionCookie.normalize($0) }
+                case .xiaomiMiMo:
+                    host = XiaomiMiMoClient.host
+                    keep = { try? XiaomiMiMoCookie.normalize($0) }
+                case .workbuddy:
+                    host = WorkBuddyClient.host
+                    keep = { try? WorkBuddyCookie.normalize($0) }
+                case .doubao:
+                    host = DoubaoClient.host
+                    keep = { try? DoubaoCookie.normalize($0) }
+                // The chosen site's host and no other: `qoder.com.cn`'s session
+                // is not `qoder.com`'s, and is never read on its behalf.
+                case .qoder:
+                    host = settings.qoderSite.host
+                    keep = { try? QoderCookie.normalize($0) }
+                // Likewise StepFun: the chosen console's host only.
+                case .stepFun:
+                    host = settings.stepFunSite.host
+                    keep = { try? StepFunCookie.normalize($0) }
+                case .claudeCode, .codex, .kiro, .antigravity, .cursor, .openCodeGo,
+                     .kimiCode, .zai, .glmCoding, .minimax, .minimaxCN, .copilot,
+                     .grok, .grokBot, .volcengine, .commandCode, .deepSeek, .devin,
+                     .sub2api, .newAPI, .v2ex, .pulseExtension:
+                    // Not session-based: `readSession` sends those to
+                    // `readBrowserStorage` before it gets here.
+                    return
+                }
+            } else {
+                // The profile names the host and the cookies worth keeping.
+                guard case .sessionCookie(let profileHost, let cookies) = account.provider.profile?.credential
+                else { return }
+                host = profileHost
+                keep = { ProviderProfile.keep($0, cookies: cookies) }
             }
 
             if account.provider == .workbuddy {
@@ -1417,6 +1476,8 @@ struct SettingsView: View {
                     String.localized("No Qoder session found. Sign in at \(settings.qoderSite.host) first.")
                 case .stepFun:
                     String.localized("No StepFun session found. Sign in at \(settings.stepFunSite.host) first.")
+                case _ where account.provider.profile != nil:
+                    String.localized("No session found. Sign in at \(host) first.")
                 default:
                     String.localized("No Ollama session found. Sign in at ollama.com first.")
                 }
@@ -1433,6 +1494,37 @@ struct SettingsView: View {
         let chosen = settings.sessionBrowser(for: account)
         guard !(chosen.map { [$0] } ?? ChromiumLocalStorage.present()).isEmpty else {
             sessionMessage = String.localized("No Chromium browser was found.")
+            return
+        }
+
+        // A profiled provider's sign-in is saved like a pasted key, because
+        // its fetch reads the credential it is handed and never the browser.
+        if case .browserStorage(let origin, let keys) = account.provider.profile?.credential {
+            Task {
+                let found = await Task.detached(priority: .userInitiated) {
+                    ChromiumLocalStorage.find(
+                        origin: origin,
+                        in: chosen.map { [$0] } ?? ChromiumLocalStorage.present(),
+                        accept: { ProviderProfile.storageCredential(from: $0, keys: keys) != nil }
+                    )
+                }.value
+                guard let found, let credential = ProviderProfile.storageCredential(from: found.values, keys: keys),
+                      APIKeyStore.setKey(credential, for: account.provider)
+                else {
+                    if pane == .account(account) {
+                        let host = URL(string: origin)?.host() ?? origin
+                        sessionMessage = String.localized("No session found. Sign in at \(host) first.")
+                    }
+                    return
+                }
+                store.loadAPIKeys()
+                store.refresh(account)
+                if pane == .account(account) {
+                    apiKey = credential
+                    savedKey = credential
+                    sessionMessage = String.localized("Read from \(found.browser.name).")
+                }
+            }
             return
         }
 
@@ -1476,7 +1568,9 @@ struct SettingsView: View {
 
     private func accountPaneBody(_ account: AccountKey, _ provider: Provider) -> some View {
         VStack(alignment: .leading, spacing: 22) {
-            if !settings.isEnabled(account), account.isPrimary {
+            // An extension is never a first account, and what it will do
+            // when switched on is exactly what somebody should read first.
+            if !settings.isEnabled(account), account.isPrimary || provider == .pulseExtension {
                 Text(provider.monitoringAccessDescription)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1505,6 +1599,28 @@ struct SettingsView: View {
                     SettingsRowDivider()
 
                     splitRow(for: account)
+                }
+
+                // Codex's first account only: the count comes from the app
+                // server, which reads the login the CLI saved — not an
+                // account Pulse signed in to itself.
+                if account == AccountKey(.codex) {
+                    SettingsRowDivider()
+
+                    SettingsRow(
+                        String.localized("Reset credits on the card"),
+                        subtitle: String.localized("How many limit reset credits are left, and when the next one expires. Asks Codex's app server on every refresh.")
+                    ) {
+                        Toggle("", isOn: Binding(
+                            get: { settings.showsCodexResetCredits },
+                            set: {
+                                settings.showsCodexResetCredits = $0
+                                store.refreshCodexResetCredits()
+                            }
+                        ))
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                    }
                 }
 
                 SettingsRowDivider()
@@ -1665,6 +1781,10 @@ struct SettingsView: View {
                 }
             }
 
+            if let pulseExtension = settings.pulseExtension(for: account) {
+                ExtensionProgramGroup(pulseExtension: pulseExtension)
+            }
+
             if !settings.needsProviderSelection {
                 connection(for: account)
                     .id("connection")
@@ -1682,23 +1802,23 @@ struct SettingsView: View {
                 liveUsage(for: account)
             }
 
+            // Its own group rather than a row under Connection, which is
+            // about credentials and routes. This is a notification, and the
+            // general pane's group of them is the wrong home too: the figure
+            // is per account, because the providers that report a balance do
+            // not price in the same currency.
+            if reportsBalance(account) {
+                SettingsGroup(String.localized("Notifications")) {
+                    lowBalanceRow(for: account)
+                }
+            }
+
             // Both are built from the transcripts the CLI leaves behind, so
             // for a provider that keeps none they would be a column of zeroes
             // claiming nothing had been spent — and for an account Pulse
             // signed in to itself they would be worse than that. Those
             // transcripts belong to whichever account the CLI is signed in to,
             // which is not this one, so showing them here would report one
-            // Its own group rather than a row under Connection, which is
-            // about credentials and routes. This is a notification, and the
-            // general pane's group of them is the wrong home too: the figure
-            // is per account, because the providers that report a balance do
-            // not price in the same currency.
-            if provider.reportsSpendableBalance {
-                SettingsGroup(String.localized("Notifications")) {
-                    lowBalanceRow(for: account)
-                }
-            }
-
             // account's spending under another's name.
             if provider.providesHistory, account.isPrimary {
                 // The estimate is money, and money needs the token split only
@@ -1714,17 +1834,18 @@ struct SettingsView: View {
         }
         .onChange(of: "\(account.id)|\(settings.isEnabled(account))", initial: true) { _, _ in
             let shown = provider
+            revealsKey = false
             // The stored figure, shown in the field rather than left blank
             // beside a ring that is measuring against it.
-            if shown == .deepSeek {
-                deepSeekBudget = settings.deepSeekBudget.map { String($0) } ?? ""
+            if hasBalanceRing(account) {
+                balanceBudgetText = Self.text(settings.balanceBudget(for: account))
             }
             if shown.usesServerAddress {
                 serverAddress = settings.serverAddress(for: account)
                 serverAddressInvalid = false
             }
-            if shown.reportsSpendableBalance {
-                lowBalance = settings.lowBalanceAlert(for: AccountKey(shown)).map { String($0) } ?? ""
+            if reportsBalance(account) {
+                lowBalance = settings.lowBalanceAlert(for: account).map { String($0) } ?? ""
             }
             // Copilot has no key field, but its token lives in the same store
             // and the pane needs to know whether there is one.
@@ -2082,25 +2203,53 @@ struct SettingsView: View {
             : .localized("Asking \(provider.displayName)")
     }
 
-    /// DeepSeek reports money and no allowance, so the ring has no denominator
-    /// until one is chosen. Three modes because there are exactly three places
-    /// one can come from — see `DeepSeekBasis`.
-    private var deepSeekBasisRow: some View {
+    /// Whether this account's ring is a balance's, with a basis to choose: an
+    /// API account that reports money — and whose reading is money, not
+    /// limits of its own. A sub2api group reports quota windows, which are the
+    /// provider's figures; a basis picker beside them would change nothing,
+    /// and a control that does nothing is worse than none. See `BalanceRing`.
+    private func hasBalanceRing(_ account: AccountKey) -> Bool {
+        let takesRing = account.provider == .pulseExtension || account.provider.billing == .api
+        guard takesRing, reportsBalance(account) else { return false }
+        return store.usage(for: account).windows.allSatisfy { $0.estimate == .sinceTopUp || $0.estimate == .yourBudget }
+    }
+
+    /// Money in the account, spent by the call. A built-in provider's primary
+    /// account says so by being that kind of provider. An extension says so
+    /// by printing a balance, so it is asked of its reading instead: one that
+    /// reports limits only has nothing a "warn below" figure could compare.
+    private func reportsBalance(_ account: AccountKey) -> Bool {
+        if account.provider == .pulseExtension { return store.usage(for: account).creditRemaining != nil }
+        return account.isPrimary && account.provider.reportsSpendableBalance
+    }
+
+    /// An API account reports money and no allowance, so the ring has no
+    /// denominator until one is chosen. Three modes because there are exactly
+    /// three places one can come from — see `BalanceBasis`.
+    ///
+    /// **Not "Ring shows".** That is the Panel group's row, which picks the
+    /// limit the ring follows; two rows of one name on one pane read as one
+    /// setting shown twice.
+    private func balanceBasisRow(for account: AccountKey) -> some View {
         SettingsRow(
-            String.localized("Ring shows"),
-            subtitle: Self.deepSeekBasisSubtitle(settings.deepSeekBasis)
+            String.localized("Ring measures"),
+            subtitle: Self.balanceBasisSubtitle(settings.balanceBasis(for: account))
         ) {
             Picker("", selection: Binding(
-                get: { settings.deepSeekBasis },
-                set: { settings.deepSeekBasis = $0 }
+                get: { settings.balanceBasis(for: account) },
+                set: { settings.setBalanceBasis($0, for: account) }
             )) {
-                ForEach(DeepSeekBasis.allCases) { basis in
+                ForEach(BalanceBasis.allCases) { basis in
                     Text(basis.title).tag(basis)
                 }
             }
             .labelsHidden()
             .pickerStyle(.segmented)
-            .frame(width: SettingsLayout.controlWidth, alignment: .trailing)
+            // Its own width, not `controlWidth`: three segments need more than
+            // that, and a frame narrower than the control does not shrink it —
+            // it overflows leftwards over the subtitle. Sized to itself, the
+            // row makes room and the subtitle wraps instead.
+            .fixedSize()
         }
     }
 
@@ -2220,27 +2369,27 @@ struct SettingsView: View {
         store.refresh(account)
     }
 
-    private var deepSeekBudgetRow: some View {
+    private func balanceBudgetRow(for account: AccountKey) -> some View {
         SettingsRow(
             String.localized("Full tank"),
             subtitle: String.localized("What you call a full balance. The ring measures against it.")
         ) {
             HStack(spacing: 8) {
-                TextField("", text: $deepSeekBudget)
+                TextField("", text: $balanceBudgetText)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: SettingsLayout.controlWidth - 70)
-                    .onSubmit { saveDeepSeekBudget() }
+                    .onSubmit { saveBalanceBudget(for: account) }
 
-                Button(String.localized("Save")) { saveDeepSeekBudget() }
+                Button(String.localized("Save")) { saveBalanceBudget(for: account) }
             }
         }
     }
 
     /// Blank clears it, which puts the ring back to showing the balance alone
     /// rather than a fraction of nothing.
-    private func saveDeepSeekBudget() {
-        settings.deepSeekBudget = Self.money(deepSeekBudget)
-        deepSeekBudget = Self.text(settings.deepSeekBudget)
+    private func saveBalanceBudget(for account: AccountKey) {
+        settings.setBalanceBudget(Self.money(balanceBudgetText), for: account)
+        balanceBudgetText = Self.text(settings.balanceBudget(for: account))
     }
 
     /// A figure typed into a settings field, or nil for anything that is not
@@ -2278,12 +2427,12 @@ struct SettingsView: View {
             .locale(LocalizationSource.locale))
     }
 
-    private static func deepSeekBasisSubtitle(_ basis: DeepSeekBasis) -> String {
+    private static func balanceBasisSubtitle(_ basis: BalanceBasis) -> String {
         switch basis {
         case .sinceTopUp:
             .localized("How much of the balance Pulse last saw you top up to is gone.")
         case .balanceOnly:
-            .localized("The money left, with no ring. DeepSeek reports no allowance.")
+            .localized("The money left, with no ring. There is no allowance to measure against.")
         case .budget:
             .localized("How much of the figure you set is gone.")
         }
@@ -2329,6 +2478,8 @@ struct SettingsView: View {
 
     private static func keySubtitle(for provider: Provider) -> String {
         switch provider {
+        case _ where provider.profile?.keySubtitle != nil:
+            provider.profile?.keySubtitle?() ?? ""
         case _ where provider.usesSessionCookie:
             .localized("Copied from your browser. Stored encrypted on this Mac.")
         case .zai:
@@ -2503,6 +2654,8 @@ struct SettingsView: View {
                 SettingsRow(
                     account.provider.usesSessionCookie
                         ? String.localized("Session cookie")
+                        : account.provider.profile != nil && account.provider.readsBrowserStorage
+                        ? String.localized("Browser session")
                         : account.provider.usesKeyPair
                             ? String.localized("Access keys")
                             // Devin's is a token *and* an organization, and
@@ -2514,14 +2667,32 @@ struct SettingsView: View {
                     subtitle: Self.keySubtitle(for: account.provider)
                 ) {
                     HStack(spacing: 8) {
-                        SecureField("", text: $apiKey)
-                            .focused($credentialFocused)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: SettingsLayout.controlWidth)
-                            .onSubmit { saveKey(for: account) }
+                        Group {
+                            if revealsKey {
+                                TextField("", text: $apiKey)
+                            } else {
+                                SecureField("", text: $apiKey)
+                            }
+                        }
+                        .focused($credentialFocused)
+                        .textFieldStyle(.roundedBorder)
+                        // Narrower by the eye's button, so the row is as wide
+                        // as it was and Save is not squeezed.
+                        .frame(width: SettingsLayout.controlWidth - 44)
+                        .onSubmit { saveKey(for: account) }
+
+                        Button {
+                            revealsKey.toggle()
+                        } label: {
+                            Image(systemName: revealsKey ? "eye.slash" : "eye")
+                                .frame(width: 16)
+                        }
+                        .help(revealsKey ? String.localized("Hide") : String.localized("Show"))
+                        .accessibilityLabel(revealsKey ? String.localized("Hide") : String.localized("Show"))
 
                         Button(String.localized("Save")) { saveKey(for: account) }
                             .disabled(apiKey == savedKey)
+                            .fixedSize()
                     }
                 }
 
@@ -2592,12 +2763,14 @@ struct SettingsView: View {
                 }
             }
 
-            if account.provider == .deepSeek {
+            // Every API account that reports money, as DeepSeek's did first:
+            // the ring has no denominator until one of three is chosen.
+            if hasBalanceRing(account) {
                 SettingsRowDivider()
-                deepSeekBasisRow
-                if settings.deepSeekBasis == .budget {
+                balanceBasisRow(for: account)
+                if settings.balanceBasis(for: account) == .budget {
                     SettingsRowDivider()
-                    deepSeekBudgetRow
+                    balanceBudgetRow(for: account)
                 }
             }
 
@@ -3169,6 +3342,16 @@ struct SettingsView: View {
     }
 }
 
+extension Provider.Billing {
+    /// What the sidebar and the chooser head each group with.
+    var sectionTitle: String {
+        switch self {
+        case .subscription: .localized("Subscriptions")
+        case .api: .localized("API and pay-as-you-go")
+        }
+    }
+}
+
 enum SettingsPane: Hashable {
     /// The panel's own settings, split by what they are about. They were one
     /// "General" pane of thirty-odd rows until that was too long to find
@@ -3187,6 +3370,9 @@ enum SettingsPane: Hashable {
     case spend
     case about
     case integrations
+    /// Where extensions live and which were found. Each one found is an
+    /// `.account` of its own; this is the list.
+    case extensions
 
     /// The sidebar's fixed rows, section by section. `panel` and
     /// `application` sit above the accounts; `trailing` below them.
@@ -3210,6 +3396,7 @@ enum SettingsPane: Hashable {
         case .account(let account): account.provider.displayName
         case .about: .localized("About")
         case .integrations: .localized("Developer integrations")
+        case .extensions: .localized("Manage extensions")
         }
     }
 
@@ -3227,6 +3414,7 @@ enum SettingsPane: Hashable {
         case .account: "square.stack.3d.up"
         case .about: "info.circle"
         case .integrations: "terminal"
+        case .extensions: "puzzlepiece.extension"
         }
     }
 
@@ -3254,6 +3442,8 @@ enum SettingsPane: Hashable {
             [.localized("Warn at"), .localized("When a limit comes back"), .localized("When a reading stops arriving")]
         case .network:
             [.localized("Check every"), .localized("Proxy")]
+        case .extensions:
+            [.localized("Extensions"), .localized("Look again")]
         case .account, .spend, .about, .integrations:
             []
         }

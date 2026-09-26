@@ -4,9 +4,11 @@ import Observation
 
 /// Holds the current usage for every provider and keeps it refreshed.
 ///
-/// The two providers are fetched very differently — Codex is asked over the
-/// network, Claude Code is read from whatever its status line last handed us —
-/// so each is refreshed on its own terms rather than on one shared clock.
+/// Providers are fetched in as many different ways as there are providers —
+/// most are asked over the network, Claude Code can be read from whatever its
+/// status line last handed us, and others go through a CLI, a local app's
+/// cache or a browser session — so each is refreshed on its own terms rather
+/// than on one shared clock.
 ///
 /// The loop itself reschedules after every pass rather than repeating on a
 /// fixed timer, because on `.automatic` the wait is worked out afresh each
@@ -124,12 +126,46 @@ final class UsageStore {
         // And the remedy differs: a sign-in is not a key to paste.
         let reason: ProviderUsage.Unavailability = if account.provider == .copilot {
             .notSignedIn
+        } else if account.provider.profile?.credential == .apiKey(optional: true) {
+            // The field is a second way in; the first is a login this Mac may
+            // already have, which only a fetch can find.
+            .loading
+        } else if account.provider.profile != nil, account.provider.readsBrowserStorage {
+            .sessionMissing
         } else if account.provider.usesSessionCookie {
             .ollamaSessionMissing
         } else {
             .apiKeyMissing
         }
         return .unavailable(account, reason: reason)
+    }
+
+    /// How many limit reset credits Codex's first account has, for its card —
+    /// nil while the switch is off or before the first answer. Asked beside
+    /// every Codex refresh rather than inside it: it is a second call to a
+    /// different route, and a slow app server must not hold the ring up.
+    private(set) var codexResetCredits: CodexResetCredits?
+    /// Which ask is the latest. Two can be in flight — a ring click right
+    /// after a pass — and the one that answers last is not always the one
+    /// asked last: an app server timing out after twenty seconds must not
+    /// put "Not available" over the count a later ask already brought back.
+    private var codexResetCreditsAsk = 0
+
+    /// Internal so Settings can ask directly when the switch moves, rather
+    /// than through `onChange`, which refetches every provider for what is
+    /// one row on one card.
+    func refreshCodexResetCredits() {
+        codexResetCreditsAsk += 1
+        let ask = codexResetCreditsAsk
+        guard settings.showsCodexResetCredits, settings.isEnabled(AccountKey(.codex)) else {
+            codexResetCredits = nil
+            return
+        }
+        Task { [weak self, appServer] in
+            let credits = await CodexAccountUsageService(server: appServer).resetCredits()
+            guard let self, ask == self.codexResetCreditsAsk, self.settings.showsCodexResetCredits else { return }
+            self.codexResetCredits = credits
+        }
     }
 
     /// Codex's reset credits and account totals, which only its app server
@@ -143,7 +179,7 @@ final class UsageStore {
     /// Picks up a key that was just entered, or one that changed.
     func loadAPIKeys() {
         apiKeys = Dictionary(
-            uniqueKeysWithValues: Provider.allCases
+            uniqueKeysWithValues: Provider.builtIn
                 .filter { $0.keepsOwnCredential && settings.isEnabled(AccountKey($0)) }
                 .compactMap { provider in APIKeyStore.key(for: provider).map { (provider, $0) } }
         )
@@ -152,10 +188,10 @@ final class UsageStore {
         // one that still has nothing to show should say which of the two it is
         // rather than going on claiming to be loading. Only a placeholder is
         // rewritten — a reading that has actually been taken is left alone.
-        for provider in Provider.allCases where provider.keepsOwnCredential {
+        for provider in Provider.builtIn where provider.keepsOwnCredential {
             let account = AccountKey(provider)
             guard case .unavailable(let reason) = usage[account.id]?.state,
-                  [.loading, .apiKeyMissing, .ollamaSessionMissing, .apiKeyRefused,
+                  [.loading, .apiKeyMissing, .ollamaSessionMissing, .sessionMissing, .apiKeyRefused,
                    .signedOut, .notSignedIn]
                     .contains(reason)
             else { continue }
@@ -457,10 +493,23 @@ final class UsageStore {
             now: now
         )
         for provider in wanted { askedAt[AccountKey(provider).id] = now }
+        // Profiled providers are asked side by side in one group rather than
+        // each getting its own `async let` below: there are dozens of them,
+        // and nothing about one depends on another.
+        let profiled = wanted.compactMap { provider -> (ProviderProfile, ProfileContext)? in
+            guard let profile = provider.profile else { return nil }
+            return (profile, profileContext(for: provider))
+        }
         // Added accounts stay on the loop's own cadence: every one of them is
         // an agent whose transcripts this Mac can see, so the signals are not
         // blind to any of them.
-        let extras = settings.shownAccounts.filter { !$0.isPrimary }
+        let extras = settings.shownAccounts.filter { !$0.isPrimary && $0.provider != .pulseExtension }
+        // Extensions are read side by side rather than in that queue: each is
+        // a program with its own time limit, and one taking all of it must not
+        // make every other extension wait behind it.
+        let extensionServices = settings.shownAccounts
+            .compactMap(settings.pulseExtension(for:))
+            .map(ExtensionUsageService.init(pulseExtension:))
 
         Task { [codex, kiro, claudeCode, antigravity, cursor, grok, grokBot] in
             // Independent, so they run side by side rather than one waiting on
@@ -546,6 +595,16 @@ final class UsageStore {
             async let stepFunUsage = wanted.contains(.stepFun)
                 ? await stepFun.fetch()
                 : ProviderUsage.unavailable(.stepFun, reason: .loading)
+            // Started beside the built-in ones, not after they have all come
+            // back: waiting on them put the slowest of each group end to end.
+            async let profiledUsage = withTaskGroup(of: (Provider, ProviderUsage).self) { group in
+                for (profile, context) in profiled {
+                    group.addTask { (context.provider, await profile.fetch(context)) }
+                }
+                var readings: [(Provider, ProviderUsage)] = []
+                for await reading in group { readings.append(reading) }
+                return readings
+            }
 
             let (rawCodex, rawKiro, rawClaude, rawAntigravity, rawOpenCode) =
                 await (codexUsage, kiroUsage, claudeUsage, antigravityUsage, openCodeUsage)
@@ -558,6 +617,7 @@ final class UsageStore {
             let (rawSub2API, rawNewAPI, rawV2EX) = await (sub2apiUsage, newAPIUsage, v2exUsage)
             let (rawXiaomi, rawQoder, rawStepFun) = await (xiaomiUsage, qoderUsage, stepFunUsage)
             let (rawWorkBuddy, rawDoubao) = await (workbuddyUsage, doubaoUsage)
+            let rawProfiled = await profiledUsage
 
             // **The disowning is checked before anything is written, not just
             // before the readings are handed to the panel.** `reconciled`
@@ -606,7 +666,8 @@ final class UsageStore {
                 (.stepFun, rawStepFun),
                 (.workbuddy, rawWorkBuddy),
                 (.doubao, rawDoubao),
-            ] where wanted.contains(provider) {
+            ] + rawProfiled where wanted.contains(provider) {
+                let raw = self.ringed(raw)
                 results.append(BatchResult(
                     provider: provider,
                     raw: raw,
@@ -627,6 +688,19 @@ final class UsageStore {
                 let raw = await Self.fetchAdded(account, claudeCode: claudeCode, codex: codex, grok: grok, grokBot: grokBot)
                 guard pass == self.currentPass else { return }
                 fetchedExtras.append((account.id, await UsageCache.shared.reconciled(raw), raw))
+            }
+            let extensionReadings = await withTaskGroup(of: ProviderUsage.self) { group in
+                for service in extensionServices {
+                    group.addTask { await service.fetch() }
+                }
+                var readings: [ProviderUsage] = []
+                for await reading in group { readings.append(reading) }
+                return readings
+            }
+            guard pass == self.currentPass else { return }
+            for reading in extensionReadings {
+                let raw = self.ringed(reading)
+                fetchedExtras.append((raw.id, await UsageCache.shared.reconciled(raw), raw))
             }
 
 
@@ -660,6 +734,7 @@ final class UsageStore {
                 self.signals.lastChange = Date()
             }
 
+            if wanted.contains(.codex) { self.refreshCodexResetCredits() }
             self.scheduleNext()
         }
     }
@@ -729,13 +804,20 @@ final class UsageStore {
             enteredKey: key, address: settings.serverAddress(for: account)
         )
         let v2ex = V2EXUsageService(enteredKey: key)
+        let extensionService = settings.pulseExtension(for: account).map(ExtensionUsageService.init(pulseExtension:))
+        let profiled = provider.profile.map { ($0, profileContext(for: provider, key: key)) }
 
         Task { [codex, claudeCode, antigravity, cursor, grok, grokBot] in
             let raw: ProviderUsage
-            if !account.isPrimary {
+            if account.provider == .pulseExtension {
+                // Gone from the folder since it was listed: say so rather
+                // than leave the ring on a reading from a program that is not
+                // there any more.
+                raw = await extensionService?.fetch() ?? .unavailable(account, reason: .extensionMissing)
+            } else if !account.isPrimary {
                 raw = await Self.fetchAdded(account, claudeCode: claudeCode, codex: codex, grok: grok, grokBot: grokBot)
-            } else {
-            switch provider {
+            } else if let written = provider.handWritten {
+            switch written {
             case .codex:
                 raw = await codex.fetch(source: source)
             case .kiro:
@@ -786,14 +868,25 @@ final class UsageStore {
                 raw = await qoder.fetch()
             case .stepFun:
                 raw = await stepFun.fetch()
+            // Every extension is a slot of its own, answered above.
+            case .pulseExtension:
+                raw = .unavailable(account, reason: .extensionMissing)
             }
+            } else {
+                // A profiled provider: the fetch its own file built.
+                raw = if let (profile, context) = profiled {
+                    await profile.fetch(context)
+                } else {
+                    .unavailable(account, reason: .loading)
+                }
             }
 
             guard pass == self.currentPass else { return }
 
-            let fetched = await UsageCache.shared.reconciled(raw)
+            let answered = self.ringed(raw)
+            let fetched = await UsageCache.shared.reconciled(answered)
             guard pass == self.currentPass else { return }
-            self.commit(fetched, raw: raw, for: account.id)
+            self.commit(fetched, raw: answered, for: account.id)
 
             if previous?.windows != fetched.windows {
                 self.signals.lastChange = Date()
@@ -812,9 +905,40 @@ final class UsageStore {
             self.isRefreshing = false
             self.refreshStartedAt = nil
             self.refreshingAccount = nil
+            if account == AccountKey(.codex) { self.refreshCodexResetCredits() }
             self.scheduleNext()
             self.runQueued()
         }
+    }
+
+    /// An API account's balance with the ring its basis gives it. DeepSeek
+    /// makes its own, from before the rule was everyone's; see `BalanceRing`.
+    private func ringed(_ raw: ProviderUsage) -> ProviderUsage {
+        let account = raw.account
+        // Extensions too: one that reports a balance and no limit is a relay's
+        // prepaid credit, and `applying` leaves every other reading as it is.
+        let takesRing = account.provider == .pulseExtension
+            || (account.provider.billing == .api && account.provider != .deepSeek)
+        guard takesRing else { return raw }
+        return BalanceRing.applying(
+            basis: settings.balanceBasis(for: account),
+            budget: settings.balanceBudget(for: account),
+            to: raw
+        )
+    }
+
+    /// What a profiled provider's fetch is handed: the credential Pulse holds
+    /// for it and the address it is to be sent to, read here on the main
+    /// actor so the fetch itself touches no settings.
+    ///
+    /// `key` is for the per-account refresh, which reads the store directly
+    /// because a pane reachable while switched off has nothing in `apiKeys`.
+    private func profileContext(for provider: Provider, key: String? = nil) -> ProfileContext {
+        ProfileContext(
+            provider: provider,
+            credential: key ?? apiKeys[provider],
+            serverAddress: provider.usesServerAddress ? settings.serverAddress(for: AccountKey(provider)) : nil
+        )
     }
 
     /// An account Pulse signed in to itself.
@@ -850,16 +974,20 @@ final class UsageStore {
             AccountCredentialStore.renewed(credentials, for: account)
         }
 
-        return switch account.provider {
+        // Nothing else can be signed in to, so nothing else gets here —
+        // including every profiled provider.
+        guard let written = account.provider.handWritten else {
+            return .unavailable(account, reason: .loading)
+        }
+        return switch written {
         case .claudeCode: await claudeCode.fetch(account: account, token: credentials.accessToken)
         case .codex: await codex.fetch(account: account, credentials: credentials)
         case .grok: await grok.fetch(account: account, token: credentials.accessToken)
         case .grokBot: await grokBot.fetch(account: account, token: credentials.accessToken)
-        // Nothing else can be signed in to, so nothing else gets here.
         case .kiro, .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .volcengine,
              .commandCode, .deepSeek, .devin, .xiaomiMiMo, .sub2api, .newAPI,
-             .v2ex, .qoder, .stepFun, .workbuddy, .doubao:
+             .v2ex, .qoder, .stepFun, .workbuddy, .doubao, .pulseExtension:
             .unavailable(account, reason: .loading)
         }
     }

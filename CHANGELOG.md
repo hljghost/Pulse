@@ -7,6 +7,86 @@ shows in the update window — see [Scripts/changelog.py](Scripts/changelog.py).
 Add the entry **before** tagging, in the small grammar the converter knows:
 bullets, `**bold**`, `` `code` `` and `[links](https://example.com)`.
 
+## 1.5.2
+
+**中文**
+
+**改进与修复**
+
+- **新版 ChatGPT 桌面 App 也能读到 Codex 额度重置券了。** ChatGPT 26.924 把自带的 codex 换了位置，1.5.1 找不到；现在新旧两个位置都会找。感谢 [@sanziliu](https://github.com/qunqin24/Pulse/issues/67) 定位。
+- **卡片上显示最近一张重置券的到期时间**，精确到分钟，就在券的数量下面。
+
+**English**
+
+**Changed and fixed**
+
+- **Codex's limit reset credits are read with the newer ChatGPT desktop app too.** ChatGPT 26.924 moved the codex it ships, and 1.5.1 didn't find it; both places are looked in now. Thanks to [@sanziliu](https://github.com/qunqin24/Pulse/issues/67) for tracking it down.
+- **The card shows when the next reset credit expires**, to the minute, under the count.
+
+## 1.5.1
+
+**中文**
+
+**新功能**
+
+- **扩展可以显示余额。** 扩展除了报额度，现在也能报账户余额（金额和币种），适合 API 中转站。圆环可以像 API 服务一样选「自上次充值起 / 只看余额 / 我的预算」，也能设置低余额提醒。中转站的例子见 [Docs/extensions.md](https://github.com/qunqin24/Pulse/blob/main/Docs/extensions.md)。感谢 [@Zoltan-code](https://github.com/qunqin24/Pulse/issues/40) 提议。
+
+**改进与修复**
+
+- **密钥输入框旁加了显示按钮。** 点小眼睛可以看到输入的内容，方便核对；换到别的服务时会自动重新隐藏。
+- **API 服务设置页的「圆环计算方式」不再压住说明文字。** 这一行原来也叫「环上显示」，和面板组里的同名设置分不清，现在改了名。
+- **只装了 ChatGPT 桌面 App 时，也能读到 Codex 额度重置券。** 此前 Pulse 不会去 App 里找自带的 codex，卡片一直显示「不可用」。找不到 codex 时，现在会直接显示「找不到 codex」。感谢 [@sanziliu](https://github.com/qunqin24/Pulse/issues/67) 反馈。
+
+**English**
+
+**New**
+
+- **Extensions can report a balance.** Besides limits, an extension can now report the money left in an account, as an amount and a currency, which suits API relays. Its ring takes the same three choices as an API account's — since top-up, balance only, my budget — and it can warn when the balance runs low. A relay example is in [Docs/extensions.md](https://github.com/qunqin24/Pulse/blob/main/Docs/extensions.md). Thanks to [@Zoltan-code](https://github.com/qunqin24/Pulse/issues/40) for asking.
+
+**Changed and fixed**
+
+- **The key field has a show button.** Click the eye to see what you typed and check it; it hides again when you open another provider.
+- **Ring measures no longer covers its own description** on an API account's settings page. It was also called Ring shows, the same as the Panel group's row for a different setting; it has a name of its own now.
+- **Codex's limit reset credits are read when only the ChatGPT desktop app is installed.** Pulse never looked for the codex the app ships, so the card said Not available. When no codex can be found at all, it now says so. Thanks to [@sanziliu](https://github.com/qunqin24/Pulse/issues/67) for the report.
+
+## 1.5.0
+
+**中文**
+
+**新功能**
+
+- **新增 53 个服务商，共 77 个。** 阶跃星辰的 Step Plan，以及 ClinePass、阿里云百炼 Coding Plan 与 Token Plan、Qwen Cloud、美团 LongCat、Gemini、Kilo Code、Factory、Augment Code、Windsurf、Amp、Mistral、Moonshot、OpenAI API、xAI API 等 52 个。这 52 个参照 [CodexBar](https://github.com/steipete/CodexBar) 的实现移植，还没有用真实账号验证过；哪个用不了，欢迎提 issue。完整列表见 README。
+- **扩展。** 自己写一个小程序放进扩展文件夹，就能让 Pulse 显示某个账号的用量，例如公司内部的额度接口。开启之前不会运行，Pulse 也不会交给它任何凭据。写法见 [Docs/extensions.md](https://github.com/qunqin24/Pulse/blob/main/Docs/extensions.md)。感谢 [@guanbear](https://github.com/qunqin24/Pulse/issues/51) 提议。
+- **订阅和 API 分开列。** 设置侧边栏和首次启动的服务选择窗口分成「订阅」和「API 与按量付费」两组，最上面是「已启用」，不用再从几十个服务里翻找。
+- **每个 API 服务都能选圆环显示方式。** 此前只有 DeepSeek 可以：自上次充值起、只看余额、我的预算。现在 OpenAI API、Moonshot、New API 等报余额的服务都能各自设置。
+- **Codex 卡片可以显示额度重置券。** 在 设置 → Codex 里打开「在卡片上显示额度重置券」，悬浮卡片会显示还剩几张；Codex 没有返回时显示「不可用」。默认关闭。感谢 [@sanziliu](https://github.com/qunqin24/Pulse/issues/67) 提议。
+
+**改进与修复**
+
+- **用 npm 或 nvm 安装的 Codex，现在能读到它的 app server。** 从 Finder 或开机启动的 Pulse 找不到 `node`，app server 一启动就退出，重置券等数据一直读不到。Kiro、arkcli 等命令行工具也一并处理。
+- **还没选服务时，菜单栏菜单第一项会提示去选。** 之前点了「以后再说」就没有任何提示说明面板为什么不见了。感谢 [@Drswith](https://github.com/qunqin24/Pulse/issues/66) 反馈。
+- **面板窗口只按已开启的服务预留大小。** 此前按所有服务预留，服务一多，透明窗口会比屏幕高出许多。
+- **「顺序」里只列已开启的服务。**
+- **设置侧边栏加宽**，长名字不再被截断。
+
+**English**
+
+**New**
+
+- **53 new providers, 77 in all.** StepFun's Step Plan, and 52 more including ClinePass, Alibaba Cloud Model Studio's Coding Plan and Token Plan, Qwen Cloud, LongCat, Gemini, Kilo Code, Factory, Augment Code, Windsurf, Amp, Mistral, Moonshot, OpenAI API and xAI API. Those 52 were ported by reading [CodexBar](https://github.com/steipete/CodexBar)'s providers and have not been checked against a live account yet; if one doesn't work for you, please open an issue. The full list is in the README.
+- **Extensions.** A small program of your own, put in the extensions folder, can report one account's usage — an internal quota endpoint, say — and Pulse draws it as a ring. Nothing runs until you switch it on, and Pulse hands it no credentials. How to write one: [Docs/extensions.md](https://github.com/qunqin24/Pulse/blob/main/Docs/extensions.md). Thanks to [@guanbear](https://github.com/qunqin24/Pulse/issues/51) for proposing it.
+- **Subscriptions and API accounts are listed apart.** The Settings sidebar and the first-run chooser group providers under Subscriptions and API and pay-as-you-go, with the ones you use under Enabled at the top.
+- **Every API account chooses what its ring measures.** DeepSeek's three modes — since top-up, balance only, my budget — now apply to OpenAI API, Moonshot, New API and every other account that reports a balance, each set on its own.
+- **Codex's card can show limit reset credits.** Turn on Reset credits on the card in Settings → Codex, and the hover card says how many are left, or Not available when Codex reports none. Off by default. Thanks to [@sanziliu](https://github.com/qunqin24/Pulse/issues/67) for asking.
+
+**Changed and fixed**
+
+- **A Codex installed with npm or nvm now reaches its app server.** Pulse launched from Finder had no `node` on its path, so the app server quit at once and reset credits never arrived. Kiro, arkcli and the other command-line tools are started the same way now.
+- **The menu bar menu says to choose services when none are.** Dismissing the first-run chooser left no panel and nothing saying why. Thanks to [@Drswith](https://github.com/qunqin24/Pulse/issues/66) for reporting it.
+- **The panel window is sized for the rings switched on.** It reserved room for every provider, which with dozens of them made the transparent window far taller than the screen.
+- **Order lists only the accounts switched on.**
+- **A wider Settings sidebar**, so long provider names are no longer cut short.
+
 ## 1.4.1
 
 **中文**

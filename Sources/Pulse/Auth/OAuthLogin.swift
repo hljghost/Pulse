@@ -64,7 +64,8 @@ enum OAuthLogin {
         let deviceFlow: DeviceFlow?
 
         static func of(_ provider: Provider) -> Configuration? {
-            switch provider {
+            guard let written = provider.handWritten else { return nil }
+            return switch written {
             case .claudeCode:
                 // Read out of the installed CLI rather than remembered: an
                 // OAuth flow with one parameter wrong fails in a way that
@@ -145,7 +146,7 @@ enum OAuthLogin {
             case .kiro, .antigravity, .cursor, .openCodeGo, .kimiCode, .ollamaCloud,
              .zai, .glmCoding, .minimax, .minimaxCN, .copilot, .grokBot, .volcengine,
              .commandCode, .deepSeek, .devin, .xiaomiMiMo, .sub2api, .newAPI,
-             .v2ex, .qoder, .stepFun, .workbuddy, .doubao:
+             .v2ex, .qoder, .stepFun, .workbuddy, .doubao, .pulseExtension:
                 nil
             }
         }

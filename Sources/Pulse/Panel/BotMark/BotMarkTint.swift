@@ -25,8 +25,13 @@ enum BotMarkTint {
     /// certainty than the others; they are one line each to correct. Kimi's
     /// blue, Z.ai having no colour of its own, and MiniMax's red are what the
     /// person maintaining this app says they are.
+    private static func profile(of provider: Provider) -> Color? {
+        provider.profile?.brandColor.map(BotMarkPalette.rgb)
+    }
+
     static func brand(for provider: Provider) -> Color? {
-        switch provider {
+        guard let written = provider.handWritten else { return profile(of: provider) }
+        return switch written {
         case .claudeCode: BotMarkPalette.rgb(0xD97757)
         case .deepSeek: BotMarkPalette.rgb(0x4D6BFE)
         case .volcengine: BotMarkPalette.rgb(0x1664FF)
@@ -57,7 +62,8 @@ enum BotMarkTint {
         // New API's own mark is a cyan-to-pink pair; neither end is the
         // colour, so it takes one of Pulse's own rather than half a gradient.
         case .codex, .kiro, .cursor, .openCodeGo, .ollamaCloud, .zai,
-             .copilot, .grok, .grokBot, .commandCode, .devin, .newAPI, .v2ex:
+             .copilot, .grok, .grokBot, .commandCode, .devin, .newAPI, .v2ex,
+             .pulseExtension:
             nil
         }
     }

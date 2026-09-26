@@ -70,7 +70,10 @@ enum DetailCardLayout {
     /// not like a card that didn't fit. Providers report a variable number of
     /// limits (Codex adds one group per model with its own limits), so this
     /// budgets for more than are on screen today.
-    static var maximumHeight: CGFloat { height(forWindows: 5, footnote: true) }
+    /// One row more than the limits for Codex's reset-credit lines: the count
+    /// and the soonest expiry are two text lines, which together are shorter
+    /// than a limit's row and so fit inside the budget of one.
+    static var maximumHeight: CGFloat { height(forWindows: 6, footnote: true) }
 
     static func height(forWindows count: Int, footnote: Bool = false) -> CGFloat {
         padding * 2
@@ -99,6 +102,9 @@ struct UsageDetailCard: View {
     var showsRemaining: Bool = false
     /// Say whether each limit will last its window.
     var showsForecast: Bool = false
+    /// Codex's limit reset credits, when its switch is on and it has been
+    /// asked. Nil draws no row at all.
+    var resetCredits: CodexResetCredits?
     /// Where the pointer's tip should sit along the side facing the rail,
     /// measured from the card's own top or leading edge. The card gets pushed
     /// around by the panel's own edges (see
@@ -140,13 +146,23 @@ struct UsageDetailCard: View {
             // and the message below covered it. DeepSeek on "balance only"
             // reports money and no limits *by design*, and the money is then
             // the whole reading — so it is what the card says.
+            // The count Codex reported, or that it reported none — never one
+            // Pulse worked out. Then when the soonest of them lapses, to the
+            // minute, since that decides whether to spend one now (issue #67).
+            if let resetCredits {
+                ValueRow(title: String.localized("Limit reset credits"), value: Self.resetCreditsText(resetCredits))
+                if let expiry = Self.resetCreditExpiryText(resetCredits) {
+                    ValueRow(title: String.localized("Next expiry"), value: expiry)
+                }
+            }
+
             if let balance = usage.creditBalance {
                 if !usage.windows.isEmpty {
                     Divider()
                         .opacity(0.15)
                 }
                 ValueRow(
-                    title: usage.windows.isEmpty
+                    title: usage.windows.isEmpty || usage.account.provider == .pulseExtension
                         ? String.localized("Credit balance")
                         : (usage.provider == .doubao ? String.localized("Usage Overview") : String.localized("Total Remaining")),
                     value: balance
@@ -194,6 +210,28 @@ struct UsageDetailCard: View {
         .background(PanelSurface(shape: bubble, usesGlass: usesGlass))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(String.localized("\(title ?? usage.provider.displayName) usage details"))
+    }
+
+    /// The soonest available credit's expiry, with the year: a credit can
+    /// last past New Year, and one whose date is misread gets wasted. Nil when
+    /// there is none to spend or Codex gave no date.
+    static func resetCreditExpiryText(_ credits: CodexResetCredits) -> String? {
+        guard case .available(let count, let expiry?) = credits, count > 0 else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = LocalizationSource.locale
+        formatter.setLocalizedDateFormatFromTemplate("yMMMdjmm")
+        return formatter.string(from: expiry)
+    }
+
+    static func resetCreditsText(_ credits: CodexResetCredits) -> String {
+        switch credits {
+        case .available(let count, _):
+            count == 1 ? .localized("1 available") : .localized("\("\(count)") available")
+        case .unreported:
+            .localized("Not available")
+        case .codexMissing:
+            .localized("codex not found")
+        }
     }
 
     /// A limit the next card has and this one did not waits for the card to

@@ -78,7 +78,15 @@ enum UsageSource: String, CaseIterable, Identifiable, Sendable {
 
     /// What the tooling route actually is, which differs per provider.
     func detail(for provider: Provider) -> String {
-        switch (self, provider) {
+        // Every profiled provider has one route and it needs a key, same as
+        // the merged hand-written case below — except `.automatic`, which
+        // matches first regardless of provider, exactly as it does below.
+        guard let written = provider.handWritten else {
+            return self == .automatic
+                ? .localized("Use the endpoint when possible, the other route when not.")
+                : .localized("Uses the key you entered.")
+        }
+        return switch (self, written) {
         case (.automatic, _):
             .localized("Use the endpoint when possible, the other route when not.")
         case (.endpoint, .claudeCode):
@@ -106,7 +114,7 @@ enum UsageSource: String, CaseIterable, Identifiable, Sendable {
             .localized("Use the endpoint when possible, the other route when not.")
         case (_, .openCodeGo), (_, .kimiCode), (_, .zai), (_, .glmCoding),
              (_, .minimax), (_, .minimaxCN), (_, .copilot), (_, .commandCode), (_, .deepSeek),
-             (_, .sub2api), (_, .newAPI), (_, .v2ex):
+             (_, .sub2api), (_, .newAPI), (_, .v2ex), (_, .pulseExtension):
             // Never shown either — one route, and it needs a key.
             .localized("Uses the key you entered.")
         case (.endpoint, .devin):
@@ -337,7 +345,10 @@ enum PanelMetrics {
     /// is worked out from it before SwiftUI lays anything out — and getting it
     /// wrong slices the end off the rail, which is exactly what happened the
     /// first time a seventh account existed.
-    nonisolated(unsafe) private static var storedCapacity = Provider.allCases.count
+    /// Replaced at launch by `AppSettings.restored()`; this is only what a
+    /// preview or a test starts from, and it is long enough for the longest
+    /// rail either of them draws.
+    nonisolated(unsafe) private static var storedCapacity = 25
 
     static var scale: CGFloat { lock.withLock { stored } }
     static var spacing: CGFloat { lock.withLock { storedSpacing } }

@@ -83,7 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         updateMenuBarItem()
 
         if settings.needsProviderSelection {
-            showProviderSelection(providers: Set(Provider.allCases), isInitial: true)
+            showProviderSelection(providers: Set(Provider.builtIn), isInitial: true)
         } else {
             startMonitoring()
             if !settings.suggestedProviders.isEmpty {
@@ -222,6 +222,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func populateMenu(_ menu: NSMenu) {
+        // With no service chosen there is no rail, and nothing else on screen
+        // says why. Rebuilt on every open, so it goes once a choice is made.
+        if settings.needsProviderSelection {
+            let item = NSMenuItem(
+                title: .localized("Choose services to start monitoring…"),
+                action: #selector(chooseServices),
+                keyEquivalent: ""
+            )
+            item.target = self
+            menu.addItem(item)
+            menu.addItem(.separator())
+        }
+
         if let newer = update.newer {
             let item = NSMenuItem(
                 title: .localized("Pulse \(newer.version) is available"),
@@ -250,6 +263,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
         quit.target = NSApp
         menu.addItem(quit)
+    }
+
+    @objc private func chooseServices() {
+        providerSetupWindow?.close()
+        showProviderSelection(providers: Set(Provider.builtIn), isInitial: true)
     }
 
     @objc private func openSettingsFromMenu() {

@@ -6,6 +6,60 @@
         <description>Updates for Pulse.</description>
         <language>en</language>
         <item>
+            <title>1.5.2</title>
+            <pubDate>Sat, 26 Sep 2026 10:59:00 -0000</pubDate>
+            <sparkle:version>1.5.2</sparkle:version>
+            <sparkle:shortVersionString>1.5.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <link>https://github.com/qunqin24/Pulse/releases/tag/v1.5.2</link>
+            <description><![CDATA[<style>
+  h2 { font-size: 1.05em; margin: 0 0 .5em; }
+  ul { margin: 0; padding-left: 1.2em; }
+  li { margin: .3em 0; }
+  p { margin: .8em 0 0; }
+</style><h2>Pulse 1.5.2</h2><p><strong>中文</strong></p><p><strong>改进与修复</strong></p><ul><li><strong>新版 ChatGPT 桌面 App 也能读到 Codex 额度重置券了。</strong> ChatGPT 26.924 把自带的 codex 换了位置，1.5.1 找不到；现在新旧两个位置都会找。感谢 <a href="https://github.com/qunqin24/Pulse/issues/67">@sanziliu</a> 定位。</li><li><strong>卡片上显示最近一张重置券的到期时间</strong>，精确到分钟，就在券的数量下面。</li></ul><p><strong>English</strong></p><p><strong>Changed and fixed</strong></p><ul><li><strong>Codex&#x27;s limit reset credits are read with the newer ChatGPT desktop app too.</strong> ChatGPT 26.924 moved the codex it ships, and 1.5.1 didn&#x27;t find it; both places are looked in now. Thanks to <a href="https://github.com/qunqin24/Pulse/issues/67">@sanziliu</a> for tracking it down.</li><li><strong>The card shows when the next reset credit expires</strong>, to the minute, under the count.</li></ul><p><a href="https://github.com/qunqin24/Pulse/releases/tag/v1.5.2">Release notes on GitHub</a></p>]]></description>
+            <enclosure url="https://github.com/qunqin24/Pulse/releases/download/v1.5.2/Pulse-1.5.2.zip"
+                       length="10454594"
+                       type="application/octet-stream"
+                       sparkle:edSignature="79/6Oybk5gznxyvC9BgJ44Gu+LDPufnbCVpbmdYD+qzHPbKFhWaFNDJ5uDcVTN89Z2OW3QuguI2wT0vDy4HDCw==" />
+        </item>
+        <item>
+            <title>1.5.1</title>
+            <pubDate>Sat, 26 Sep 2026 10:14:55 -0000</pubDate>
+            <sparkle:version>1.5.1</sparkle:version>
+            <sparkle:shortVersionString>1.5.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <link>https://github.com/qunqin24/Pulse/releases/tag/v1.5.1</link>
+            <description><![CDATA[<style>
+  h2 { font-size: 1.05em; margin: 0 0 .5em; }
+  ul { margin: 0; padding-left: 1.2em; }
+  li { margin: .3em 0; }
+  p { margin: .8em 0 0; }
+</style><h2>Pulse 1.5.1</h2><p><strong>中文</strong></p><p><strong>新功能</strong></p><ul><li><strong>扩展可以显示余额。</strong> 扩展除了报额度，现在也能报账户余额（金额和币种），适合 API 中转站。圆环可以像 API 服务一样选「自上次充值起 / 只看余额 / 我的预算」，也能设置低余额提醒。中转站的例子见 <a href="https://github.com/qunqin24/Pulse/blob/main/Docs/extensions.md">Docs/extensions.md</a>。感谢 <a href="https://github.com/qunqin24/Pulse/issues/40">@Zoltan-code</a> 提议。</li></ul><p><strong>改进与修复</strong></p><ul><li><strong>密钥输入框旁加了显示按钮。</strong> 点小眼睛可以看到输入的内容，方便核对；换到别的服务时会自动重新隐藏。</li><li><strong>API 服务设置页的「圆环计算方式」不再压住说明文字。</strong> 这一行原来也叫「环上显示」，和面板组里的同名设置分不清，现在改了名。</li><li><strong>只装了 ChatGPT 桌面 App 时，也能读到 Codex 额度重置券。</strong> 此前 Pulse 不会去 App 里找自带的 codex，卡片一直显示「不可用」。找不到 codex 时，现在会直接显示「找不到 codex」。感谢 <a href="https://github.com/qunqin24/Pulse/issues/67">@sanziliu</a> 反馈。</li></ul><p><strong>English</strong></p><p><strong>New</strong></p><ul><li><strong>Extensions can report a balance.</strong> Besides limits, an extension can now report the money left in an account, as an amount and a currency, which suits API relays. Its ring takes the same three choices as an API account&#x27;s — since top-up, balance only, my budget — and it can warn when the balance runs low. A relay example is in <a href="https://github.com/qunqin24/Pulse/blob/main/Docs/extensions.md">Docs/extensions.md</a>. Thanks to <a href="https://github.com/qunqin24/Pulse/issues/40">@Zoltan-code</a> for asking.</li></ul><p><strong>Changed and fixed</strong></p><ul><li><strong>The key field has a show button.</strong> Click the eye to see what you typed and check it; it hides again when you open another provider.</li><li><strong>Ring measures no longer covers its own description</strong> on an API account&#x27;s settings page. It was also called Ring shows, the same as the Panel group&#x27;s row for a different setting; it has a name of its own now.</li><li><strong>Codex&#x27;s limit reset credits are read when only the ChatGPT desktop app is installed.</strong> Pulse never looked for the codex the app ships, so the card said Not available. When no codex can be found at all, it now says so. Thanks to <a href="https://github.com/qunqin24/Pulse/issues/67">@sanziliu</a> for the report.</li></ul><p><a href="https://github.com/qunqin24/Pulse/releases/tag/v1.5.1">Release notes on GitHub</a></p>]]></description>
+            <enclosure url="https://github.com/qunqin24/Pulse/releases/download/v1.5.1/Pulse-1.5.1.zip"
+                       length="10451108"
+                       type="application/octet-stream"
+                       sparkle:edSignature="zbyHEfazK+gpaSRfh1+TwfGhUTluHH7aVOuW6hvOb2o1cQ6gJIqnLaPp0Npcmwj0QiGpq2RUvSlLPf+WsNfCDw==" />
+        </item>
+        <item>
+            <title>1.5.0</title>
+            <pubDate>Fri, 25 Sep 2026 08:55:05 -0000</pubDate>
+            <sparkle:version>1.5.0</sparkle:version>
+            <sparkle:shortVersionString>1.5.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <link>https://github.com/qunqin24/Pulse/releases/tag/v1.5.0</link>
+            <description><![CDATA[<style>
+  h2 { font-size: 1.05em; margin: 0 0 .5em; }
+  ul { margin: 0; padding-left: 1.2em; }
+  li { margin: .3em 0; }
+  p { margin: .8em 0 0; }
+</style><h2>Pulse 1.5.0</h2><p><strong>中文</strong></p><p><strong>新功能</strong></p><ul><li><strong>新增 53 个服务商，共 77 个。</strong> 阶跃星辰的 Step Plan，以及 ClinePass、阿里云百炼 Coding Plan 与 Token Plan、Qwen Cloud、美团 LongCat、Gemini、Kilo Code、Factory、Augment Code、Windsurf、Amp、Mistral、Moonshot、OpenAI API、xAI API 等 52 个。这 52 个参照 <a href="https://github.com/steipete/CodexBar">CodexBar</a> 的实现移植，还没有用真实账号验证过；哪个用不了，欢迎提 issue。完整列表见 README。</li><li><strong>扩展。</strong> 自己写一个小程序放进扩展文件夹，就能让 Pulse 显示某个账号的用量，例如公司内部的额度接口。开启之前不会运行，Pulse 也不会交给它任何凭据。写法见 <a href="https://github.com/qunqin24/Pulse/blob/main/Docs/extensions.md">Docs/extensions.md</a>。感谢 <a href="https://github.com/qunqin24/Pulse/issues/51">@guanbear</a> 提议。</li><li><strong>订阅和 API 分开列。</strong> 设置侧边栏和首次启动的服务选择窗口分成「订阅」和「API 与按量付费」两组，最上面是「已启用」，不用再从几十个服务里翻找。</li><li><strong>每个 API 服务都能选圆环显示方式。</strong> 此前只有 DeepSeek 可以：自上次充值起、只看余额、我的预算。现在 OpenAI API、Moonshot、New API 等报余额的服务都能各自设置。</li><li><strong>Codex 卡片可以显示额度重置券。</strong> 在 设置 → Codex 里打开「在卡片上显示额度重置券」，悬浮卡片会显示还剩几张；Codex 没有返回时显示「不可用」。默认关闭。感谢 <a href="https://github.com/qunqin24/Pulse/issues/67">@sanziliu</a> 提议。</li></ul><p><strong>改进与修复</strong></p><ul><li><strong>用 npm 或 nvm 安装的 Codex，现在能读到它的 app server。</strong> 从 Finder 或开机启动的 Pulse 找不到 <code>node</code>，app server 一启动就退出，重置券等数据一直读不到。Kiro、arkcli 等命令行工具也一并处理。</li><li><strong>还没选服务时，菜单栏菜单第一项会提示去选。</strong> 之前点了「以后再说」就没有任何提示说明面板为什么不见了。感谢 <a href="https://github.com/qunqin24/Pulse/issues/66">@Drswith</a> 反馈。</li><li><strong>面板窗口只按已开启的服务预留大小。</strong> 此前按所有服务预留，服务一多，透明窗口会比屏幕高出许多。</li><li><strong>「顺序」里只列已开启的服务。</strong></li><li><strong>设置侧边栏加宽</strong>，长名字不再被截断。</li></ul><p><strong>English</strong></p><p><strong>New</strong></p><ul><li><strong>53 new providers, 77 in all.</strong> StepFun&#x27;s Step Plan, and 52 more including ClinePass, Alibaba Cloud Model Studio&#x27;s Coding Plan and Token Plan, Qwen Cloud, LongCat, Gemini, Kilo Code, Factory, Augment Code, Windsurf, Amp, Mistral, Moonshot, OpenAI API and xAI API. Those 52 were ported by reading <a href="https://github.com/steipete/CodexBar">CodexBar</a>&#x27;s providers and have not been checked against a live account yet; if one doesn&#x27;t work for you, please open an issue. The full list is in the README.</li><li><strong>Extensions.</strong> A small program of your own, put in the extensions folder, can report one account&#x27;s usage — an internal quota endpoint, say — and Pulse draws it as a ring. Nothing runs until you switch it on, and Pulse hands it no credentials. How to write one: <a href="https://github.com/qunqin24/Pulse/blob/main/Docs/extensions.md">Docs/extensions.md</a>. Thanks to <a href="https://github.com/qunqin24/Pulse/issues/51">@guanbear</a> for proposing it.</li><li><strong>Subscriptions and API accounts are listed apart.</strong> The Settings sidebar and the first-run chooser group providers under Subscriptions and API and pay-as-you-go, with the ones you use under Enabled at the top.</li><li><strong>Every API account chooses what its ring measures.</strong> DeepSeek&#x27;s three modes — since top-up, balance only, my budget — now apply to OpenAI API, Moonshot, New API and every other account that reports a balance, each set on its own.</li><li><strong>Codex&#x27;s card can show limit reset credits.</strong> Turn on Reset credits on the card in Settings → Codex, and the hover card says how many are left, or Not available when Codex reports none. Off by default. Thanks to <a href="https://github.com/qunqin24/Pulse/issues/67">@sanziliu</a> for asking.</li></ul><p><strong>Changed and fixed</strong></p><ul><li><strong>A Codex installed with npm or nvm now reaches its app server.</strong> Pulse launched from Finder had no <code>node</code> on its path, so the app server quit at once and reset credits never arrived. Kiro, arkcli and the other command-line tools are started the same way now.</li><li><strong>The menu bar menu says to choose services when none are.</strong> Dismissing the first-run chooser left no panel and nothing saying why. Thanks to <a href="https://github.com/qunqin24/Pulse/issues/66">@Drswith</a> for reporting it.</li><li><strong>The panel window is sized for the rings switched on.</strong> It reserved room for every provider, which with dozens of them made the transparent window far taller than the screen.</li><li><strong>Order lists only the accounts switched on.</strong></li><li><strong>A wider Settings sidebar</strong>, so long provider names are no longer cut short.</li></ul><p><a href="https://github.com/qunqin24/Pulse/releases/tag/v1.5.0">Release notes on GitHub</a></p>]]></description>
+            <enclosure url="https://github.com/qunqin24/Pulse/releases/download/v1.5.0/Pulse-1.5.0.zip"
+                       length="10423164"
+                       type="application/octet-stream"
+                       sparkle:edSignature="ksGOrNT9J5zyCJp3PjHrk2QlW0DV1Lw6PJYZaDaV6qIScWAK3uZAPXD2M7rT+jrYhKtS1+DQ8sNY47GF5zenCg==" />
+        </item>
+        <item>
             <title>1.4.1</title>
             <pubDate>Thu, 24 Sep 2026 04:03:03 -0000</pubDate>
             <sparkle:version>1.4.1</sparkle:version>
