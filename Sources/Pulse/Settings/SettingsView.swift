@@ -131,6 +131,8 @@ struct SettingsView: View {
     /// you, not a preference about the app, so it lives here and is dropped
     /// when the agent changes rather than being written to `AppSettings`.
     @State private var selectedModel: String?
+    /// The provider whose window starter is waiting on the risk confirmation.
+    @State private var confirmingStarter: Provider?
     @State private var modelSpend = ModelSpendSummary()
 
     var body: some View {
@@ -968,6 +970,68 @@ struct SettingsView: View {
                     .labelsHidden()
                     .toggleStyle(.switch)
                 }
+
+                SettingsRowDivider()
+
+                // Greyed out rather than hidden while the icon is: it is what
+                // the icon would show, and says so.
+                SettingsRow(
+                    String.localized("Show usage in the menu bar"),
+                    subtitle: String.localized("A ring's mark and figure beside the icon, red past the warning line.")
+                ) {
+                    Toggle("", isOn: Binding(
+                        get: { settings.showsUsageInMenuBar },
+                        set: { settings.showsUsageInMenuBar = $0 }
+                    ))
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                }
+                .disabled(settings.hidesMenuBarIcon)
+
+                // Only once there is a figure to shape. Offered even with the
+                // icon hidden would be two controls for nothing on screen.
+                if settings.showsUsageInMenuBar, !settings.hidesMenuBarIcon {
+                    SettingsRowDivider()
+
+                    SettingsRow(
+                        String.localized("Menu bar shows"),
+                        subtitle: String.localized("An account switched off falls back to the fullest ring.")
+                    ) {
+                        Picker("", selection: Binding(
+                            // An account taken off the rail reads as the
+                            // fallback it has become, not as no selection.
+                            get: {
+                                settings.menuBarAccount.flatMap { id in
+                                    settings.shownAccounts.contains { $0.id == id } ? id : nil
+                                }
+                            },
+                            set: { settings.menuBarAccount = $0 }
+                        )) {
+                            Text(localized: "Fullest ring").tag(String?.none)
+                            ForEach(settings.shownAccounts, id: \.id) { account in
+                                Text(verbatim: settings.label(for: account)).tag(String?.some(account.id))
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
+                    }
+
+                    SettingsRowDivider()
+
+                    SettingsRow(String.localized("Menu bar style")) {
+                        Picker("", selection: Binding(
+                            get: { settings.menuBarStyle },
+                            set: { settings.menuBarStyle = $0 }
+                        )) {
+                            Text(localized: "Figure").tag(MenuBarStyle.figure)
+                            Text(localized: "Ring").tag(MenuBarStyle.ring)
+                            Text(localized: "Split").tag(MenuBarStyle.split)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .fixedSize()
+                    }
+                }
             }
 
             SettingsGroup(String.localized("Shortcuts")) {
@@ -1785,6 +1849,12 @@ struct SettingsView: View {
                 ExtensionProgramGroup(pulseExtension: pulseExtension)
             }
 
+            // Claude Code's and Codex's first account: the tool sends as
+            // whoever it is signed in as, which is that account.
+            if account.isPrimary, WindowPrimer.providers.contains(account.provider), settings.isEnabled(account) {
+                windowStarter(for: account.provider)
+            }
+
             if !settings.needsProviderSelection {
                 connection(for: account)
                     .id("connection")
@@ -2208,6 +2278,100 @@ struct SettingsView: View {
     /// limits of its own. A sub2api group reports quota windows, which are the
     /// provider's figures; a basis picker beside them would change nothing,
     /// and a control that does nothing is worse than none. See `BalanceRing`.
+    /// Sends "hi" after each reset so the next window starts then — see
+    /// `WindowPrimer`. Switching it on goes through a confirmation that says
+    /// plainly this is not the provider's feature and may cost the account;
+    /// the reader decides with that in front of them, not in a subtitle.
+    private func windowStarter(for provider: Provider) -> some View {
+        SettingsGroup(String.localized("Start windows automatically")) {
+            SettingsRow(
+                String.localized("Start a new window after each reset"),
+                subtitle: provider == .claudeCode
+                    ? String.localized("When the 5-hour limit resets, sends “hi” to Haiku through Claude Code, so the next window starts counting then rather than at your next message. Nothing is saved.")
+                    : String.localized("When the 5-hour or weekly limit resets, sends “hi” to the cheapest model through Codex, so the next window starts counting then rather than at your next message. Nothing is saved.")
+            ) {
+                Toggle("", isOn: Binding(
+                    get: { settings.primesWindows(for: provider) },
+                    set: { on in
+                        if on { confirmingStarter = provider } else { settings.setPrimesWindows(false, for: provider) }
+                    }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+            }
+
+            if settings.primesWindows(for: provider) {
+                SettingsRowDivider()
+
+                SettingsRow(
+                    String.localized("Only between"),
+                    subtitle: String.localized("A reset outside these hours is started when they begin. Shared by Claude Code and Codex.")
+                ) {
+                    HStack(spacing: 6) {
+                        hourPicker(Binding(
+                            get: { settings.primerHours.start },
+                            set: { settings.primerHours.start = $0 }
+                        ))
+                        Text(verbatim: "–")
+                        hourPicker(Binding(
+                            get: { settings.primerHours.end },
+                            set: { settings.primerHours.end = $0 }
+                        ))
+                    }
+                }
+
+                SettingsRowDivider()
+
+                SettingsRow(String.localized("Last started")) {
+                    Text(verbatim: Self.primerStatus(settings.lastPrimerRun(for: provider)))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                        .frame(maxWidth: SettingsLayout.controlWidth, alignment: .trailing)
+                }
+            }
+        }
+        .alert(
+            String.localized("Use at your own risk"),
+            isPresented: Binding(
+                get: { confirmingStarter == provider },
+                set: { if !$0 { confirmingStarter = nil } }
+            )
+        ) {
+            Button(String.localized("I understand the risk, turn it on"), role: .destructive) {
+                settings.setPrimesWindows(true, for: provider)
+                confirmingStarter = nil
+            }
+            Button(String.localized("Cancel"), role: .cancel) { confirmingStarter = nil }
+        } message: {
+            Text(localized: "This is not a feature of Anthropic or OpenAI. Starting usage windows automatically may be treated as getting around usage limits, and could get your account restricted or suspended. Pulse only sends one short message through the tool you are already signed in to, and is not responsible for anything that happens to your account as a result. Turn it on only if you accept that.")
+        }
+    }
+
+    private func hourPicker(_ hour: Binding<Int>) -> some View {
+        Picker("", selection: hour) {
+            ForEach(0..<24, id: \.self) { value in
+                Text(verbatim: String(format: "%02d:00", value)).tag(value)
+            }
+        }
+        .labelsHidden()
+        .fixedSize()
+    }
+
+    private static func primerStatus(_ run: (date: Date, outcome: WindowStarter.Outcome)?) -> String {
+        guard let run else { return .localized("Not started yet") }
+        let formatter = DateFormatter()
+        formatter.locale = LocalizationSource.locale
+        formatter.setLocalizedDateFormatFromTemplate("MMMdjmm")
+        let when = formatter.string(from: run.date)
+        return switch run.outcome {
+        case .sent: when
+        case .toolMissing: .localized("\(when) · the command-line tool was not found")
+        case .failed: .localized("\(when) · it did not go through; check the tool is signed in")
+        case .timedOut: .localized("\(when) · it did not answer in time")
+        }
+    }
+
     private func hasBalanceRing(_ account: AccountKey) -> Bool {
         let takesRing = account.provider == .pulseExtension || account.provider.billing == .api
         guard takesRing, reportsBalance(account) else { return false }
