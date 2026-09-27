@@ -169,6 +169,10 @@ struct UsageDetailCard: View {
                 )
             }
 
+            if usage.account.provider == .workbuddy {
+                WorkBuddySignInCardView()
+            }
+
             // The same rule for the other way a body can come out empty: a
             // reading that says nothing at all still has to say *that*.
             if saysNothing {
@@ -633,6 +637,100 @@ private struct LiquidBubbleSurface: View {
         }
     }
 }
+
+private struct WorkBuddySignInCardView: View {
+    @State private var isRunning = false
+    @State private var reportBadge: String?
+
+    var body: some View {
+        let signIn = WorkBuddySignInService.shared
+        let checkin = signIn.cachedCheckin
+        let growth = signIn.cachedGrowth
+
+        VStack(alignment: .leading, spacing: 5 * PanelMetrics.scale) {
+            Divider()
+                .opacity(0.15)
+
+            HStack(alignment: .center, spacing: 6) {
+                Circle()
+                    .fill((checkin?.todayCheckedIn ?? false) ? Color.green : Color.orange)
+                    .frame(width: 6, height: 6)
+
+                Text((checkin?.todayCheckedIn ?? false)
+                     ? String.localized("Today signed in")
+                     : String.localized("Today not signed in"))
+                    .font(.system(size: DetailCardLayout.rowFontSize, weight: .regular, design: .rounded))
+                    .foregroundStyle(.primary)
+
+                if let streak = checkin?.streakDays, streak > 0 {
+                    Text(String(format: String.localized("%@d streak"), "\(streak)"))
+                        .font(.system(size: DetailCardLayout.footnoteFontSize, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 4)
+
+                Button {
+                    guard !isRunning else { return }
+                    isRunning = true
+                    Task {
+                        let rep = await signIn.runDailyTasks(force: true)
+                        isRunning = false
+                        if rep.creditsGained > 0 {
+                            reportBadge = "+\(rep.creditsGained)"
+                        } else {
+                            reportBadge = rep.result == "CLAIMED" ? String.localized("Done") : String.localized("Claimed")
+                        }
+                    }
+                } label: {
+                    if isRunning {
+                        ProgressView()
+                            .controlSize(.mini)
+                    } else if let badge = reportBadge {
+                        Text(badge)
+                            .font(.system(size: DetailCardLayout.footnoteFontSize, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.tint)
+                    } else {
+                        Text((checkin?.todayCheckedIn ?? false) ? String.localized("Tasks") : String.localized("Sign in"))
+                            .font(.system(size: DetailCardLayout.footnoteFontSize, weight: .medium, design: .rounded))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Color.primary.opacity(0.08)))
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+
+            if let buddyState = growth?.buddyState {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("🐾")
+                        .font(.system(size: 10))
+                    let travelDesc: String = {
+                        if buddyState == "traveling" {
+                            let loc = growth?.buddyLocation ?? ""
+                            let eta = growth?.buddyEta ?? ""
+                            return loc.isEmpty ? String.localized("Traveling") : "\(loc) · \(eta)"
+                        } else if buddyState == "arrived" {
+                            return String.localized("Gift waiting to be collected")
+                        } else {
+                            return String.localized("Buddy at home")
+                        }
+                    }()
+                    Text(travelDesc)
+                        .font(.system(size: DetailCardLayout.footnoteFontSize, weight: .regular, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .onAppear {
+            Task {
+                await signIn.refreshStatusOnly()
+            }
+        }
+    }
+}
+
 #Preview("Detail card") {
     UsageDetailCard(
         usage: .unavailable(.claudeCode, reason: .loading),

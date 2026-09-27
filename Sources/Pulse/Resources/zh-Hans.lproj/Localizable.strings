@@ -609,6 +609,26 @@
 "平台奖励积分" = "平台奖励积分";
 "购买积分" = "购买积分";
 "体验版" = "体验版";
+"Today signed in" = "今日已签到";
+"Today not signed in" = "今日未签到";
+"%@d streak" = "连签%@天";
+"Tasks" = "做任务";
+"Collect" = "收取";
+"Sign in" = "签到";
+"Gift waiting to be collected" = "旅行礼物待收取";
+"Traveling" = "Buddy 旅行中";
+"Buddy at home" = "Buddy 在家待出发";
+"WorkBuddy auto sign-in and growth tasks" = "WorkBuddy 自动签到与成长中心";
+"Auto sign-in & tasks" = "每日自动签到与成长任务";
+"Automatically claim daily check-in points, send/collect Buddy travel gifts, accept and claim tasks, use makeup cards, and open blind boxes." = "每天自动执行签到、收取旅行礼物、派出伙伴、接单任务及盲盒抽奖。";
+"WorkBuddy session status" = "WorkBuddy 凭据状态";
+"Connected: Desktop session (%@)" = "已连接桌面端会话 (%@)";
+"Connected: Desktop session (AES-256-GCM decrypted)" = "已连接桌面端会话 (已解密安全凭据)";
+"No desktop session found. Please sign in to WorkBuddy desktop app." = "未找到桌面端会话，请先登录 WorkBuddy 客户端。";
+"Execute now" = "立即执行";
+"Executing…" = "正在执行…";
+"Done" = "已完成";
+"Claimed" = "已领取";
 
 /* Doubao Work */
 "Doubao Work" = "豆包工作";

@@ -64,6 +64,14 @@ final class AppSettings {
         }
     }
 
+    /// Whether WorkBuddy daily sign-in and growth tasks run automatically.
+    var workbuddyAutoSignIn: Bool = true {
+        didSet {
+            guard workbuddyAutoSignIn != oldValue else { return }
+            UserDefaults.standard.set(workbuddyAutoSignIn, forKey: Key.workbuddyAutoSignIn)
+        }
+    }
+
     /// Whether the floating panel stays out of other apps' full-screen Spaces.
     ///
     /// On by default: a usage glance is useful on the desktop, but sitting over
@@ -1638,6 +1646,7 @@ final class AppSettings {
         )
         settings.showsCodexResetCredits = defaults.bool(forKey: Key.showsCodexResetCredits)
         settings.showsUsageInMenuBar = defaults.bool(forKey: Key.showsUsageInMenuBar)
+        settings.workbuddyAutoSignIn = defaults.object(forKey: Key.workbuddyAutoSignIn) as? Bool ?? true
         settings.primedProviders = Set(defaults.stringArray(forKey: Key.primedProviders) ?? [])
         if let start = defaults.object(forKey: Key.primerStart) as? Int,
            let end = defaults.object(forKey: Key.primerEnd) as? Int,
@@ -1755,6 +1764,7 @@ final class AppSettings {
         static let balanceBases = "settings.balanceBases"
         static let showsCodexResetCredits = "settings.showsCodexResetCredits"
         static let showsUsageInMenuBar = "settings.showsUsageInMenuBar"
+        static let workbuddyAutoSignIn = "settings.workbuddyAutoSignIn"
         static let primedProviders = "settings.primedProviders"
         static let primerStart = "settings.primerStart"
         static let primerEnd = "settings.primerEnd"

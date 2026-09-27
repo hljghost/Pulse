@@ -432,6 +432,27 @@ enum WorkBuddyDesktopSession {
         let uid: String?
         let nickname: String?
         let expiresAt: Date?
+        let enterpriseId: String?
+        let domain: String?
+        let endpoint: String?
+
+        init(
+            token: String,
+            uid: String? = nil,
+            nickname: String? = nil,
+            expiresAt: Date? = nil,
+            enterpriseId: String? = nil,
+            domain: String? = nil,
+            endpoint: String? = nil
+        ) {
+            self.token = token
+            self.uid = uid
+            self.nickname = nickname
+            self.expiresAt = expiresAt
+            self.enterpriseId = enterpriseId
+            self.domain = domain
+            self.endpoint = endpoint
+        }
     }
 
     static func activeToken() -> String? {
@@ -448,12 +469,19 @@ enum WorkBuddyDesktopSession {
             guard let data = try? Data(contentsOf: file),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let auth = json["auth"] as? [String: Any],
-                  let token = auth["accessToken"] as? String, !token.isEmpty
+                  let rawToken = auth["accessToken"]
             else { continue }
+
+            guard let token = WorkBuddyAuthHelper.resolveToken(rawToken), !token.isEmpty else {
+                continue
+            }
 
             let account = json["account"] as? [String: Any]
             let uid = account?["uid"] as? String
             let nickname = account?["nickname"] as? String
+            let enterpriseId = account?["enterpriseId"] as? String
+            let domain = auth["domain"] as? String
+            let endpoint = auth["endpoint"] as? String
 
             var expiresAt: Date?
             if let expMs = auth["expiresAt"] as? Double {
@@ -464,7 +492,15 @@ enum WorkBuddyDesktopSession {
                 continue
             }
 
-            return AuthInfo(token: token, uid: uid, nickname: nickname, expiresAt: expiresAt)
+            return AuthInfo(
+                token: token,
+                uid: uid,
+                nickname: nickname,
+                expiresAt: expiresAt,
+                enterpriseId: enterpriseId,
+                domain: domain,
+                endpoint: endpoint
+            )
         }
 
         return nil
@@ -489,6 +525,14 @@ struct WorkBuddyUsageService: Sendable {
 
         do {
             let snapshot = try await client.fetch(cookie: tokenOrCookie)
+            Task { @MainActor in
+                let signIn = WorkBuddySignInService.shared
+                if !signIn.hasRunToday {
+                    await signIn.runDailyTasks()
+                } else {
+                    await signIn.refreshStatusOnly()
+                }
+            }
             return buildUsage(snapshot: snapshot)
         } catch let error as WorkBuddyError {
             // 如果原本凭据已过期且允许回退，尝试从本地桌面端获取最新 Token 重试
