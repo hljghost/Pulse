@@ -1,3 +1,4 @@
+// Copyright (c) 2026 qunqin24. Licensed under the Apache License, Version 2.0.
 import AppKit
 import SwiftUI
 
@@ -33,6 +34,12 @@ enum PulseMain {
         // decide an installation's defaults — the app does that at launch.
         if CommandLine.arguments.contains(UsageReport.modeArgument) {
             exit(UsageReport.run())
+        }
+
+        // The recap probe: read-only like `--json`, so it is settled before
+        // the migration for the same reason.
+        if CommandLine.arguments.contains(RecapReport.modeArgument) {
+            RecapReport.run(arguments: CommandLine.arguments)
         }
 
         // Before anything reads a setting: running from a bundle changes

@@ -1,3 +1,4 @@
+// Copyright (c) 2026 qunqin24. Licensed under the Apache License, Version 2.0.
 import AppKit
 import SwiftUI
 
@@ -17,6 +18,8 @@ final class SettingsWindowController {
     private let update: AppUpdate
     private let alerts: UsageAlerts
     private let shortcuts: GlobalShortcutMonitor
+    private let dock: DockPresence
+    private let openRecap: @MainActor (Recap.Period) -> Void
     private var window: NSWindow?
     private let navigation = SettingsNavigation()
 
@@ -26,7 +29,9 @@ final class SettingsWindowController {
         placement: PanelPlacement,
         update: AppUpdate,
         alerts: UsageAlerts,
-        shortcuts: GlobalShortcutMonitor
+        shortcuts: GlobalShortcutMonitor,
+        dock: DockPresence,
+        openRecap: @escaping @MainActor (Recap.Period) -> Void
     ) {
         self.store = store
         self.settings = settings
@@ -34,11 +39,16 @@ final class SettingsWindowController {
         self.update = update
         self.alerts = alerts
         self.shortcuts = shortcuts
+        self.dock = dock
+        self.openRecap = openRecap
     }
 
-    func show(link: PulseLink? = nil) {
+    /// Opens on a pane, or on the one last shown. The Dock icon follows the
+    /// window (`DockPresence`).
+    func show(link: PulseLink? = nil, pane: SettingsPane? = nil) {
         navigation.isWindowVisible = true
         if let link { navigation.open(link, accounts: settings.allAccounts) }
+        if let pane { navigation.open(pane) }
         let window = window ?? makeWindow()
         self.window = window
         window.title = String.localized("Pulse Settings")
@@ -47,9 +57,13 @@ final class SettingsWindowController {
         // window is the only place Pulse reports it.
         alerts.refreshAuthorization()
 
-        NSApp.activate(ignoringOtherApps: true)
+        // Centred when it comes up, not when it is already on screen: the
+        // recap's "Open Token spend" reaches an open window, which stays put.
+        let wasVisible = window.isVisible
         window.makeKeyAndOrderFront(nil)
-        window.center()
+        if !wasVisible { window.center() }
+        dock.apply()
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     /// Re-reads the title, which is set once at creation but has to follow a
@@ -62,7 +76,7 @@ final class SettingsWindowController {
         // 920 × 660 rather than the 760 × 500 it opened at first.
         //
         // The old default was set when the sidebar held four rows. It now holds
-        // seventeen providers plus every added account, and the general pane a
+        // seventy-seven providers plus every added account, and the general pane a
         // six-group stack — so the window opened already scrolling in both
         // columns, which reads as a window that is broken rather than one that
         // is small. This is the size at which the sidebar shows its accounts
@@ -98,9 +112,18 @@ final class SettingsWindowController {
         // The documented "hairline once content is scrolled under it" setting.
         window.titlebarSeparatorStyle = .automatic
         window.isReleasedWhenClosed = false
-        window.onClose = { [weak navigation] in navigation?.isWindowVisible = false }
+        dock.track(window)
+        window.onClose = { [weak self, weak window] in
+            self?.navigation.isWindowVisible = false
+            // `close()` runs this before the window is off screen, so the
+            // window is named rather than read from `isVisible`.
+            self?.dock.apply(closing: window)
+        }
         window.contentView = NSHostingView(
-            rootView: SettingsView(store: store, settings: settings, placement: placement, update: update, alerts: alerts, shortcuts: shortcuts, navigation: navigation)
+            rootView: SettingsView(
+                store: store, settings: settings, placement: placement, update: update, alerts: alerts,
+                shortcuts: shortcuts, navigation: navigation, openRecap: openRecap
+            )
         )
         return window
     }
@@ -117,6 +140,28 @@ final class SettingsWindowController {
 /// takes its drags here. The test is plain geometry against the field being
 /// edited, not a hit test: a hit test asks a hosted SwiftUI tree a question it
 /// answers unreliably, and this one only needs "was that inside the box".
+///
+/// An extension rather than the settings window's own, because the recap
+/// window has a text field too.
+extension NSWindow {
+    func endFieldEditing(ifOutside event: NSEvent) {
+        guard event.type == .leftMouseDown, let field = fieldBeingEdited() else { return }
+        let box = field.convert(field.bounds, to: nil)
+        if !box.contains(event.locationInWindow) { makeFirstResponder(nil) }
+    }
+
+    /// The text field the window's field editor is currently working for, or
+    /// nil when nothing is being edited.
+    func fieldBeingEdited() -> NSView? {
+        guard let editor = firstResponder as? NSText, editor.isFieldEditor else { return nil }
+
+        // The field editor is shared and installed into whichever field is
+        // active, which it keeps as its delegate.
+        if let field = (editor as? NSTextView)?.delegate as? NSView { return field }
+        return editor.superview?.superview
+    }
+}
+
 final class SettingsWindow: NSWindow {
     var onClose: (() -> Void)?
 
@@ -126,22 +171,7 @@ final class SettingsWindow: NSWindow {
     }
 
     override func sendEvent(_ event: NSEvent) {
-        if event.type == .leftMouseDown, let field = fieldBeingEdited() {
-            let box = field.convert(field.bounds, to: nil)
-            if !box.contains(event.locationInWindow) { makeFirstResponder(nil) }
-        }
-
+        endFieldEditing(ifOutside: event)
         super.sendEvent(event)
-    }
-
-    /// The text field the window's field editor is currently working for, or
-    /// nil when nothing is being edited.
-    private func fieldBeingEdited() -> NSView? {
-        guard let editor = firstResponder as? NSText, editor.isFieldEditor else { return nil }
-
-        // The field editor is shared and installed into whichever field is
-        // active, which it keeps as its delegate.
-        if let field = (editor as? NSTextView)?.delegate as? NSView { return field }
-        return editor.superview?.superview
     }
 }

@@ -1,10 +1,11 @@
+// Copyright (c) 2026 qunqin24. Licensed under the Apache License, Version 2.0.
 import Foundation
 
 /// `Pulse --json`: the app's last readings, on stdout, for anything that isn't
 /// the panel — a tmux status line, sketchybar, Raycast, a shell prompt.
 ///
 /// **It prints the cache and never fetches.** A status line polls every couple
-/// of seconds; seventeen providers cannot be asked at that rate, and a command
+/// of seconds; seventy-seven providers cannot be asked at that rate, and a command
 /// that opened network connections and touched the keychain every time a
 /// terminal redrew would be a worse citizen than no command at all. So this
 /// reads what the running app last banked, and says how old it is — every

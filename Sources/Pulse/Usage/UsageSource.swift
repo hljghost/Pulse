@@ -1,3 +1,4 @@
+// Copyright (c) 2026 qunqin24. Licensed under the Apache License, Version 2.0.
 import Foundation
 
 /// Which route a provider's figures are read by.
@@ -327,6 +328,8 @@ enum PanelMetrics {
     /// inside its item, and the hit testing has to agree with the drawing to
     /// within a point or a click lands beside the ring it appears to be on.
     nonisolated(unsafe) private static var storedLabelAboveRing = false
+    /// `AppSettings.freeAcrossFiguresBeside`, for `DockLayout.labelsBeside`.
+    nonisolated(unsafe) private static var storedFreeAcrossBeside = false
     nonisolated(unsafe) private static var storedForecast = false
 
     /// Whether the rail's ends are half circles rather than softened corners.
@@ -378,6 +381,22 @@ enum PanelMetrics {
         lock.withLock { storedLabelAboveRing = above }
     }
 
+    /// `AppSettings.showsWindowClock`: the arc outside the ring pushes the
+    /// figures further off (`DockLayout.ringToTextSpacing`).
+    nonisolated(unsafe) private static var storedWindowClock = false
+
+    static func showWindowClock(_ shows: Bool) {
+        lock.withLock { storedWindowClock = shows }
+    }
+
+    static var showsWindowClock: Bool { lock.withLock { storedWindowClock } }
+
+    static func putFreeAcrossFiguresBeside(_ beside: Bool) {
+        lock.withLock { storedFreeAcrossBeside = beside }
+    }
+
+    static var freeAcrossFiguresBeside: Bool { lock.withLock { storedFreeAcrossBeside } }
+
     static func useRoundEnds(_ uses: Bool) {
         lock.withLock { storedRoundEnds = uses }
     }
@@ -393,6 +412,17 @@ enum PanelMetrics {
         lock.withLock { storedForecast = shows }
     }
     static var showsForecast: Bool { lock.withLock { storedForecast } }
+
+    /// Whether any account's card is the detailed one. Here for the
+    /// forecast's reason: the detailed card is taller, and the panel's frame
+    /// is worked out from `DetailCardLayout` before SwiftUI lays anything out.
+    /// One frame serves every ring, so one detailed account sizes it for all.
+    nonisolated(unsafe) private static var storedDetailedCard = false
+
+    static func showDetailedCard(_ shows: Bool) {
+        lock.withLock { storedDetailedCard = shows }
+    }
+    static var showsDetailedCard: Bool { lock.withLock { storedDetailedCard } }
 
 
     static func makeRoom(for accounts: Int) {

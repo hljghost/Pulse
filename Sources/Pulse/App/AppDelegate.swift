@@ -1,3 +1,4 @@
+// Copyright (c) 2026 qunqin24. Licensed under the Apache License, Version 2.0.
 import AppKit
 import SwiftUI
 
@@ -16,7 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Not private for the same reason: the settings pane is the only place
     /// that can report a combination the window server refused.
     let shortcuts = GlobalShortcutMonitor()
-    private lazy var store = UsageStore(settings: settings, alerts: alerts)
+    private lazy var store = UsageStore(settings: settings, alerts: alerts, elsewhere: .shared)
+    /// Reads Token spend in the background while it is on.
+    private lazy var spendWarmer = SpendWarmer(settings: settings)
     /// Which tab the menu bar's menu last had open, kept between openings.
     private let dashboard = MenuDashboardModel()
     /// Starts usage windows after they reset, for the providers switched on.
@@ -29,6 +32,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var panelController: FloatingPanelController?
     private var statusItem: NSStatusItem?
     private var settingsWindow: SettingsWindowController?
+    private var recapWindow: RecapWindowController?
+    /// One owner of the Dock icon for every window Pulse opens.
+    private lazy var dock = DockPresence(settings: settings)
+    /// "Your September recap is ready", when it is switched on.
+    private lazy var recapNotice = RecapNotice(settings: settings, alerts: alerts)
     private var providerSetupWindow: ProviderSetupWindowController?
     private var preparedClaude = false
 
@@ -70,6 +78,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settings.onChange = { [weak self] in
             self?.settingsChanged()
         }
+        // Size, spacing, glass and the rest of what only changes how the panel
+        // is drawn: re-place it and stop there. `onChange` also refreshes every
+        // provider, which a layout change must not cost.
+        settings.onLayoutChange = { [weak self] in
+            self?.layoutChanged()
+        }
 
         // Same issue, from the other side: a combination that works with no
         // pointer involved. Both unset until somebody sets one.
@@ -110,6 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func settingsChanged() {
         restoreMenuBarEntryPointIfNeeded()
         settingsWindow?.refreshTitle()
+        recapWindow?.refreshTitle()
         providerSetupWindow?.refreshTitle()
         guard !settings.needsProviderSelection else { return }
         if panelController == nil {
@@ -123,14 +138,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    /// The answer to `AppSettings.onLayoutChange`: the panel is brought in line
+    /// with the setting and nothing is fetched. Before monitoring starts there
+    /// is no panel to re-place, and starting it is `settingsChanged`'s job.
+    private func layoutChanged() {
+        panelController?.settingsChanged()
+    }
+
     private func startMonitoring() {
         guard !settings.needsProviderSelection, panelController == nil else { return }
-        alerts.start { [weak self] in self?.showSettings() }
+        alerts.start(
+            openSettings: { [weak self] in self?.showSettings() },
+            openRecap: { [weak self] period in self?.showRecap(period: period) }
+        )
+        recapNotice.start()
         let controller = FloatingPanelController(store: store, settings: settings, placement: placement)
         panelController = controller
         controller.contextMenu = { [weak self] in self?.panelMenu() ?? NSMenu() }
         if settings.isPanelVisible { controller.show() }
         store.start()
+        spendWarmer.start()
         primer.start()
         prepareClaudeIfSelected()
     }
@@ -250,9 +277,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         // Only the menu bar's menu: the rail's own menu opens beside the rings
-        // it would be repeating.
-        if menu === statusItem?.menu { addDashboard(to: menu) }
+        // it would be repeating. The dashboard only when it is switched on;
+        // Refresh either way, since it is one plain item and not the detail.
+        if menu === statusItem?.menu {
+            if settings.showsMenuDashboard {
+                addDashboard(to: menu)
+            } else if !settings.needsProviderSelection, !settings.shownAccounts.isEmpty {
+                menu.addItem(refreshItem())
+                menu.addItem(.separator())
+            }
+        }
         populateMenu(menu)
+    }
+
+    private func refreshItem() -> NSMenuItem {
+        let refresh = NSMenuItem(title: .localized("Refresh"), action: #selector(refreshAll), keyEquivalent: "r")
+        refresh.target = self
+        refresh.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: nil)
+        return refresh
     }
 
     /// The tabbed view at the top of the menu bar's menu, and the items that
@@ -283,10 +325,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         page.image = NSImage(systemSymbolName: "safari", accessibilityDescription: nil)
         menu.addItem(page)
 
-        let refresh = NSMenuItem(title: .localized("Refresh"), action: #selector(refreshAll), keyEquivalent: "r")
-        refresh.target = self
-        refresh.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: nil)
-        menu.addItem(refresh)
+        menu.addItem(refreshItem())
         menu.addItem(.separator())
 
         // The page item names the open tab's provider, and is there only when
@@ -428,9 +467,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    private func showSettings(link: PulseLink?) {
-        let window = settingsWindow ?? SettingsWindowController(store: store, settings: settings, placement: placement, update: update, alerts: alerts, shortcuts: shortcuts)
+    private func showSettings(link: PulseLink?, pane: SettingsPane? = nil) {
+        let window = settingsWindow ?? SettingsWindowController(
+            store: store, settings: settings, placement: placement, update: update, alerts: alerts,
+            shortcuts: shortcuts, dock: dock,
+            openRecap: { [weak self] period in self?.showRecap(period: period) }
+        )
         settingsWindow = window
-        window.show(link: link)
+        window.show(link: link, pane: pane)
+    }
+
+    /// The recap window, on a period if one is named: the Token spend pane's
+    /// button and a clicked "recap is ready" notification name one.
+    private func showRecap(period: Recap.Period?) {
+        let window = recapWindow ?? RecapWindowController(
+            settings: settings, dock: dock,
+            openTokenSpend: { [weak self] in self?.showSettings(link: nil, pane: .spend) }
+        )
+        recapWindow = window
+        window.show(period: period)
     }
 }

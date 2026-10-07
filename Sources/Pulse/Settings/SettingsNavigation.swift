@@ -1,3 +1,4 @@
+// Copyright (c) 2026 qunqin24. Licensed under the Apache License, Version 2.0.
 import Foundation
 import Observation
 
@@ -8,6 +9,12 @@ final class SettingsNavigation {
     var pane: SettingsPane = .appearance
     var isWindowVisible = false
     private(set) var requestID = UUID()
+
+    /// Goes to a pane, as a link does.
+    func open(_ pane: SettingsPane) {
+        self.pane = pane
+        requestID = UUID()
+    }
 
     func open(_ link: PulseLink, accounts: [AccountKey]) {
         switch link {
